@@ -23,13 +23,20 @@ Type objective_function<Type>::operator() ()
   DATA_INTEGER(n_s); //total number of species
   DATA_MATRIX(C_ts); //catch data with years along rows and species along columns
   DATA_INTEGER(choose_ref); //which is the reference stock? 1 through n_s
+  DATA_INTEGER(like_type); //0 == original idea, 1==sum of squares for effort
+
+  //prior inputs
   DATA_INTEGER(rk_prior); // on == 1, off == 0
+  DATA_VECTOR(r_means);
+  DATA_VECTOR(r_sds);
+  DATA_VECTOR(K_means);
+  DATA_VECTOR(K_sds);
 
 
   // ======== Parameters ==========================
   PARAMETER_VECTOR(logr);
   PARAMETER_VECTOR(logK);
-  PARAMETER(e_sigma);
+  PARAMETER(logsigma);
 
   // ============ Global values ===================
 
@@ -43,7 +50,7 @@ Type objective_function<Type>::operator() ()
     r_s(s) = exp(logr(s));
     K_s(s) = exp(logK(s));
   }
-  // Type sigma = exp(logsigma);
+  Type sigma = exp(logsigma);
 
   //adjust reference stock integer to be from 0 through (n_s - 1)
   int find_ref = choose_ref - 1;
@@ -113,18 +120,23 @@ Type objective_function<Type>::operator() ()
   for(int s=0;s<n_s;s++){
     for(int t=0;t<n_t;t++){
 
-      // sq_ts(t,s) = pow((E_ts(t,s) - U_ts(t,s)), 2);
-      sq_ts(t,s) = pow((E_ts(t,s) - Eref_t(t)), 2);
-
-      if(s != find_ref) nll_ts(t,s) = Type(-1) * dnorm(sq_ts(t,s), Type(0.0), e_sigma, true);
+      if(like_type==0){
+        sq_ts(t,s) = pow((E_ts(t,s) - U_ts(t,s)), 2);
+        if(s != find_ref) nll_ts(t,s) = Type(-1) * dnorm(sq_ts(t,s), Type(0.0), sigma, true);
+      }
+      if(like_type==1){
+        sq_ts(t,s) = pow((E_ts(t,s) - Eref_t(t)), 2);
+        if(s != find_ref) nll_ts(t,s) = sq_ts(t,s);
+      }
+      // sq_ts(t,s) = pow((E_ts(t,s) - Uref_t(t)),2);
     }
   }
 
   matrix<Type> nll_sp(n_s,2);
   nll_sp.setZero();
   for(int s=0;s<n_s;s++){
-    nll_sp(s,0) = Type(-1) * dnorm(r_s(s), Type(0.3), Type(1), true);
-    nll_sp(s,1) = Type(-1) * dnorm(K_s(s), Type(300), Type(1000), true);
+    nll_sp(s,0) = Type(-1) * dnorm(r_s(s), r_means(s), r_sds(s), true);
+    nll_sp(s,1) = Type(-1) * dnorm(K_s(s), K_means(s), K_sds(s), true);
 
     // nll_sp(s,0) = dlognorm(r_s(s), log(Type(0.3)), Type(1), true);
     // nll_sp(s,1) = dlognorm(K_s(s), log(Type(300)), Type(1000), true);
@@ -182,7 +194,7 @@ Type objective_function<Type>::operator() ()
   //-------- parameters
   REPORT(r_s);
   REPORT(K_s);
-  REPORT(e_sigma);
+  REPORT(sigma);
 
   //--------- derived values
   REPORT(B_ts);
@@ -195,6 +207,12 @@ Type objective_function<Type>::operator() ()
   REPORT(UUmsy_ts);
 
   //--------- likelihood components
+
+  REPORT(K_means);
+  REPORT(K_sds);
+  REPORT(r_means);
+  REPORT(r_sds);
+
   REPORT(Z_ts);
   REPORT(Zavg_s);
   REPORT(qavg_s);
