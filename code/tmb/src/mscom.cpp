@@ -31,22 +31,18 @@ Type objective_function<Type>::operator() ()
   DATA_VECTOR(r_sds);
   DATA_VECTOR(K_means);
   DATA_VECTOR(K_sds);
-
-  //Random effect on?
-  DATA_INTEGER(E_random);
+  DATA_INTEGER(delta_prior);
+  DATA_VECTOR(delta_means);
+  DATA_VECTOR(delta_sds);
 
 
   // ======== Parameters ==========================
   PARAMETER_VECTOR(logr);
   PARAMETER_VECTOR(logK);
-  PARAMETER_VECTOR(InitDepl);
+  PARAMETER_VECTOR(delta_s);
   PARAMETER_VECTOR(logq);
-  PARAMETER(logsigmaU);
+  PARAMETER(logsigmaC);
   PARAMETER_VECTOR(lE_t);
-
-  // Random effects
-  PARAMETER(logsigmaE);
-  PARAMETER_MATRIX(eps_ts);
 
   // ============ Global values ===================
 
@@ -62,21 +58,11 @@ Type objective_function<Type>::operator() ()
     K_s(s) = exp(logK(s));
     q_s(s) = exp(logq(s));
   }
-  Type sigmaU = exp(logsigmaU);
-  Type sigmaE = exp(logsigmaE);
+  Type sigmaC = exp(logsigmaC);
 
   vector<Type> E_t(n_t);
   for(int t=0;t<n_t;t++){
     E_t(t) = exp(lE_t(t));
-  }
-
-  //account for random effect on effort by species
-  matrix<Type> E_ts(n_t,n_s);
-  for(int s=0;s<n_s;s++){
-    for(int t=0;t<n_t;t++){
-      if(E_random==0) E_ts(t,s) = E_t(t);
-      if(E_random==1) E_ts(t,s) = E_t(t) * exp(eps_ts(t,s) - pow(sigmaE,2)/Type(2));
-    }
   }
 
   //adjust reference stock integer to be from 0 through (n_s - 1)
@@ -92,7 +78,7 @@ Type objective_function<Type>::operator() ()
   matrix<Type> B_ts(n_t,n_s);
   for(int s=0;s<n_s;s++){
     for(int t=0;t<n_t;t++){
-      if(t==0) B_ts(t,s) = K_s(s) * InitDepl(s);
+      if(t==0) B_ts(t,s) = K_s(s) * delta_s(s);
       if(t>0) B_ts(t,s) = B_ts(t-1,s) + r_s(s) * B_ts(t-1,s) * (1 - B_ts(t-1,s)/K_s(s)) - C_ts(t-1,s);
       B_ts(t,s) = posfun(B_ts(t,s), eps, pen);
     }
@@ -103,7 +89,7 @@ Type objective_function<Type>::operator() ()
   matrix<Type> U_ts(n_t,n_s);
   for(int s=0;s<n_s;s++){
     for(int t=0;t<n_t;t++){
-      Cpred_ts(t,s) = q_s(s)*E_ts(t,s)*B_ts(t,s);
+      Cpred_ts(t,s) = q_s(s)*E_t(t)*B_ts(t,s);
     }
   }
 
@@ -113,7 +99,7 @@ Type objective_function<Type>::operator() ()
   for(int s=0;s<n_s;s++){
     for(int t=0;t<n_t;t++){
       Uobs_ts(t,s) = C_ts(t,s) / B_ts(t,s);
-      Upred_ts(t,s) = q_s(s) * E_ts(t,s);  
+      Upred_ts(t,s) = q_s(s) * E_t(t);  
     }
   }
 
@@ -129,40 +115,36 @@ Type objective_function<Type>::operator() ()
   nll_ts.setZero();
   for(int s=0;s<n_s;s++){
     for(int t=0;t<n_t;t++){
-      // nll_ts(t,s) -= dnorm(Uobs_ts(t,s), Upred_ts(t,s), sigmaU, true);
-      nll_ts(t,s) -= dnorm(C_ts(t,s), Cpred_ts(t,s), sigmaU, true);
+      nll_ts(t,s) -= dnorm(C_ts(t,s), Cpred_ts(t,s), sigmaC, true);
+      // nll_ts(t,s) -= dnorm(Uobs_ts(t,s), Upred_ts(t,s), sigmaC, true);
 
     }
   }
 
   //priors
-  matrix<Type> nll_sp(n_s,2);
+  matrix<Type> nll_sp(n_s,3);
   nll_sp.setZero();
-  for(int s=0;s<n_s;s++){
-    nll_sp(s,0) -= dnorm(r_s(s), r_means(s), r_sds(s), true);
-    nll_sp(s,1) -= dnorm(K_s(s), K_means(s), K_sds(s), true);
+  if(rk_prior==1){
+    for(int s=0;s<n_s;s++){
+      nll_sp(s,0) -= dnorm(r_s(s), r_means(s), r_sds(s), true);
+      nll_sp(s,1) -= dnorm(K_s(s), K_means(s), K_sds(s), true);
+    }
   }
-
-  //random effects
-  matrix<Type> nll_e(n_t,n_s);
-  nll_e.setZero();
-  for(int s=0;s<n_s;s++){
-    for(int t=0;t<n_t;t++){
-      if(E_random==1) nll_e(t,s) -= dnorm(eps_ts(t,s), Type(0.0), sigmaE, true);
+  if(delta_prior==1){
+    for(int s=0;s<n_s;s++){
+      nll_sp(s,2) -= dnorm(delta_s(s), delta_means(s), delta_sds(s), true);
     }
   }
 
   //likelihood components
-  vector<Type> jnll_comp(4);
+  vector<Type> jnll_comp(3);
   jnll_comp.setZero();
     // likelihood penalty if B negative
     jnll_comp(0) += pen;
     // penalized likelihood from priors
-    if(rk_prior==1) jnll_comp(1) += sum(nll_sp);
+    jnll_comp(1) += sum(nll_sp);
     // exploitation ratio likelihood
     jnll_comp(2) += sum(nll_ts);
-    // effort random effect
-    jnll_comp(3) += sum(nll_e);
 
   jnll = sum(jnll_comp);
 
@@ -195,8 +177,6 @@ Type objective_function<Type>::operator() ()
   ADREPORT(Uobs_ts);
   ADREPORT(Upred_ts);
   ADREPORT(E_t);
-  ADREPORT(E_ts);
-  ADREPORT(sigmaE);
   ADREPORT(BBmsy_ts);
   ADREPORT(UUmsy_cb_ts);
   ADREPORT(UUmsy_qE_ts);
@@ -211,13 +191,10 @@ Type objective_function<Type>::operator() ()
   //-------- parameters
   REPORT(r_s);
   REPORT(K_s);
-  REPORT(sigmaU);
+  REPORT(sigmaC);
   REPORT(q_s);
   REPORT(E_t);
-  REPORT(E_ts);
-  REPORT(sigmaE);
-  REPORT(eps_ts);
-  REPORT(InitDepl);
+  REPORT(delta_s);
 
   //--------- derived values
   REPORT(B_ts);

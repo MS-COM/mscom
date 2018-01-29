@@ -76,17 +76,17 @@ sim_pops <- function(input_mat,
 				            nburn = 1000, 
 				            ref = 0.1)$root
 
-			uterm <- ucrash * sp$PercentFcrash
+			umax <- ucrash * sp$PercentFcrash
 
 
 			if(sp$Fdynamics=="Constant"){
 				et <- rep(1, nyears)
-				q <- uterm/max(et)
+				q <- umax/max(et)
 				ut <- q*et * exp(FishDev[[x]])
 			}
 			if(sp$Fdynamics=="One-way"){
 				et <- seq(0,by=0.05,length=nyears)
-				q <- uterm/max(et)
+				q <- umax/max(et)
 				ut <- q*et * exp(FishDev[[x]])
 			}
 
@@ -112,7 +112,7 @@ sim_pops <- function(input_mat,
 			bmsy <- sp$K/2
 			umsy <- sp$r/2
 
-			out <- data.frame("Species"=species[x], "Year"=1:tyears, "Biomass"=bt, "Catch"=ct, "ExploitRate"=ut, "q"=q, "Effort"=et, "Depletion"=bt/sp$K, "Uinit"=uinit, "Ucrash"=ucrash, "Uterm"=uterm, "Bmsy"=bmsy, "Umsy"=umsy)
+			out <- data.frame("Species"=species[x], "Year"=1:tyears, "Biomass"=bt, "Catch"=ct, "ExploitRate"=ut, "q"=q, "Effort"=et, "Depletion"=bt/sp$K, "Uinit"=uinit, "Ucrash"=ucrash, "Umax"=umax, "Bmsy"=bmsy, "Umsy"=umsy)
 			out2 <- melt(out, id.vars=c("Species","Year"))
 
 			return(out2)

@@ -1,5 +1,5 @@
 basic_diagnostics <- function(years, true, Report, species){
-	par(mfrow=c(2,2))
+	par(mfrow=c(2,2), mar=c(4,4,2,2))
 # years <- simtest$years
 cols <- brewer.pal(Report$n_s, "Set1")
 ## biomass

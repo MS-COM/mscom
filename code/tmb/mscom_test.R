@@ -25,7 +25,7 @@ species <- c("tuna", "billfish", "shark")
 oneway_mat <- data.frame("SpeciesName"=species,
 						"Fdynamics"="One-way",
 						"InitialDepl"=1,
-						"PercentFcrash"=c(0.4, 0.6, 0.99),
+						"PercentFcrash"=c(0.4, 0.6, 0.8),
 						"SigmaR"=0, "rho"=0,
 						"SigmaF"=0,
 						"r" = c(0.6, 0.67, 0.11),
@@ -64,51 +64,42 @@ dyn.load( dynlib("mscom") )
 ##--------------------------
 ## build inputs and object
 ##--------------------------
-
+### Round 1 testing: Initial depletion fixed to 1, no r or K prior, likelihood based on catch
 Data <- list("n_t"=nrow(catch), 
 			"n_s"=ncol(catch), 
 			"C_ts"=catch, 
 			"rk_prior"=0, 
-			"r_means"=rep(0,ncol(catch)), "r_sds"=rep(0,ncol(catch)), 
-			"K_means"=rep(0,ncol(catch)), "K_sds"=rep(0,ncol(catch)),
-			"E_random"=0)
+			"r_means"=rep(0.5,ncol(catch)), "r_sds"=rep(10,ncol(catch)), 
+			"K_means"=rep(500,ncol(catch)), "K_sds"=rep(1000,ncol(catch)),
+			"delta_prior"=0,
+			"delta_means"=rep(1,ncol(catch)), "delta_sds"=rep(1,ncol(catch)))
 Params <- list("logr"=rep(log(0.3), ncol(catch)), 
 				"logK"=rep(log(500), ncol(catch)),
-				"InitDepl"=rep(1, ncol(catch)),
+				"delta_s"=rep(1, ncol(catch)),
 				"logq"=rep(log(1e-2), ncol(catch)), 
-				"logsigmaU"=log(2),
-				"lE_t"=rep(log(1), nrow(catch)),
-				"logsigmaE"=log(10),
-				"eps_ts"=matrix(0, nrow=nrow(catch), ncol=ncol(catch)))
+				"logsigmaC"=log(10),
+				"lE_t"=rep(log(1), nrow(catch)))
 Map <- list()
-    Map[["logsigmaU"]] <- NA
-    Map[["logsigmaU"]] <- factor(Map[["logsigmaU"]])
+    Map[["logsigmaC"]] <- NA
+    Map[["logsigmaC"]] <- factor(Map[["logsigmaC"]])
 
-    Map[["InitDepl"]] <- rep(NA, ncol(catch))
-    Map[["InitDepl"]] <- factor(Map[["InitDepl"]])
+    Map[["delta_s"]] <- rep(NA, ncol(catch))
+    Map[["delta_s"]] <- factor(Map[["delta_s"]])
 
-
-if(Data$E_random==0){
-	Random <- NULL
-	Map[["logsigmaE"]] <- NA
-	Map[["logsigmaE"]] <- factor(Map[["logsigmaE"]])
-	Map[["eps_ts"]] <- rep(NA, length(catch))
-	Map[["eps_ts"]] <- factor(Map[["eps_ts"]])
-}
-if(Data$E_random==1){
-	Random <- "eps_ts"
-}
-
-Obj <- MakeADFun( data=Data, parameters=Params, map=Map, Random=Random, DLL="mscom")
+Obj <- MakeADFun( data=Data, parameters=Params, map=Map, DLL="mscom")
 ##--------------------------
 ## optimize
 ##--------------------------
 Upr <- rep(Inf, length(Obj$par))
 Upr[which(names(Obj$par)=="logr")] <- log(0.99)
 Upr[which(names(Obj$par)=="logK")] <- log(1000)
+# Upr[which(names(Obj$par)=="delta_s")] <- 1.01
 
 Lwr <- rep(-Inf, length(Obj$par))
 Lwr[which(names(Obj$par)=="logr")] <- log(0.001)
+Lwr[which(names(Obj$par)=="logK")] <- log(50)
+# Lwr[which(names(Obj$par)=="delta_s")] <- 0.25
+
 
 Opt <- TMBhelper::Optimize( obj=Obj, loopnum=3, upper=Upr, lower=Lwr )
 # Opt <- nlminb( start=Obj$par, objective=Obj$fn, gradient=Obj$gr, upper=Upr, lower=Lwr)
@@ -124,6 +115,6 @@ Sdreport <- sdreport(Obj)
 ## priors vs. true values
 ## parameter estimates vs uncertainty
 
-png(file.path(fig_dir, "Oneway_noError.png"), height=8, width=10, res=200, units="in")
+png(file.path(fig_dir, "Round1testing_OnewaySim.png"), height=8, width=10, res=200, units="in")
 basic_diagnostics(years=1:nrow(catch), true=sim_oneway, Report=Report, species=species)
 dev.off()
