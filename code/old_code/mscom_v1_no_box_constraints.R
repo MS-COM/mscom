@@ -91,7 +91,7 @@ msy_true <- r_true*k_true/4
 bmsy_true <- k_true/2
 fmsy_true <- r_true/2
 res_true <- c("Low", "Medium", "Medium")
-e_true <- seq(0.02,0.25,length.out=nyrs)
+e_true <- seq(0.1,0.25,length.out=nyrs)
 e_scalar_true <- c(1, 0.8, 0.6)
 
 # Simulate data
@@ -119,28 +119,51 @@ plot_f(U_mat_true, yrs)
 plot_bbmsy(BBMSY_mat_true, yrs)
 
 
-
 # Model functions
 ################################################################################
 
-# Parameters
-params <- c("r", "k")
-nparam <- length(params)
+# Calculate r prior
+calc_r_priors <- function(res){
+  for(i in 1:length(res)){
+    if(res[i]=="High"){r_prior <- c(0.6,1.5)}
+    if(res[i]=="Medium"){r_prior <- c(0.2,0.8)}
+    if(res[i]=="Low"){r_prior <- c(0.05,0.5)}
+    if(res[i]=="Very low"){r_prior <- c(0.015,0.1)}
+    if(i==1){r_priors <- r_prior}else{r_priors <- rbind(r_priors, r_prior)}
+  }
+  colnames(r_priors) <- c("r_lo", "r_hi")
+  rownames(r_priors) <- NULL
+  return(r_priors)
+}
 
-# Starting values
-par_init <- matrix(data=c(0.15,550,
-                          0.35,250,
-                          0.55,150), byrow=F, nrow=nparam, ncol=nstocks, dimnames=list(params, stocks))
+# Calculate k prior
+calc_k_priors <- function(C_mat, r_priors){
+  for(i in 1:ncol(C_mat)){
+    catch <- C_mat[,i]
+    r_prior <- r_priors[i,]
+    r_lo <- r_prior[1]
+    r_hi <- r_prior[2]
+    c_max <- max(catch)
+    k_lo <- c_max / r_hi
+    k_hi <- 12 * c_max / r_lo
+    k_prior <- c(k_lo, k_hi)
+    if(i==1){k_priors <- k_prior}else{k_priors <- rbind(k_priors, k_prior)}
+  }
+  colnames(k_priors) <- c("k_lo", "k_hi")
+  rownames(k_priors) <- NULL
+  return(k_priors)
+}
 
 # Multi-species catch-only model
-# For testing: par <- par_init
-mscom_nll <- function(par){
+# For testing: par <- start_vals_log
+mscom_nll <- function(par, C_mat, nstocks, nyrs, r_priors, k_priors, ref_stock){
   
   # Parameters
-  par <- matrix(par, nrow=nparam, ncol=nstocks, byrow=F, dimnames=list(params, stocks))
-  ri <- par[1,]
-  ki <- par[2,] 
-
+  ri_log <- par[1:3]
+  ki_log <- par[4:6]
+  ri <- exp(ri_log)
+  ki <- exp(ki_log)
+  
   # Build biomass time series
   # B[t+1] = bt[t] + r*bt[t]*(1-bt[t]/k) - ct[t]
   B_mat <- matrix(data=NA, ncol=nstocks, nrow=nyrs)
@@ -154,15 +177,18 @@ mscom_nll <- function(par){
   # Are all biomasses positive?
   # If biomass remains positive, calculate NLL
   # If biomass goes negative, report a large NLL
-  pos_check <- sum(B_mat < 0)==0
-  if(pos_check==T){
+  pos_check <- sum(B_mat < 0)==0 & sum(is.na(B_mat))==0
+  if(pos_check==F){
+    nll_E <- 9999
+  }else{
     
     # Derive fishing mortality time series
     F_mat <- C_mat / B_mat
     
-    # Calculate log-ratio of secondary stocks to reference stock (first stock)
-    F_ref <- F_mat[,2]
-    F_other <- F_mat[,c(1,3)]
+    # Calculate log-ratio of secondary stocks to reference stock
+    other_stocks <- (1:nstocks)[1:nstocks!=ref_stock]
+    F_ref <- F_mat[,ref_stock]
+    F_other <- F_mat[,other_stocks]
     z <- log(F_other / F_ref)
     z_avg <- apply(z, 2, mean)
     
@@ -170,11 +196,6 @@ mscom_nll <- function(par){
     sq <- (z-z_avg)^2
     ssq <- colSums(sq)
     nll_E <- sum(-(nyrs/2)*log(ssq))
-    
-  }else{
-    
-    nll_E <- 9999
-    
   }
   
   # Return NLL
@@ -183,12 +204,34 @@ mscom_nll <- function(par){
   
 }
 
-# Estimate parameters using optim()
-optfit <- optim(par=par_init, fn=mscom_nll, control=list(maxit=10000))
-
-
-# Extract parameters and build time series
-################################################################################
+# Multi-species catch-only model
+# For testing: C_mat<-C_mat; years<-yrs; stocks<-stocks; res<-res_true; ref_stock<-1
+mscom <- function(C_mat, years, stocks, res, ref_stock){
+  
+  # Time series info
+  nyrs <- length(years)
+  nstocks <- length(stocks)
+  
+  # Calculate r and k priors
+  # R prior based on resilience; K prior based on max catch and r prior
+  r_priors <- calc_r_priors(res_true)
+  k_priors <- calc_k_priors(C_mat, r_priors)
+  
+  # Specify initial values
+  # Median of r and k priors for each stock
+  r_starts <- apply(r_priors, 1, median)
+  k_starts <- apply(k_priors, 1, median)
+  start_vals_log <- log(c(r_starts, k_starts))
+  
+  # Fit model using optim() 
+  optfit <- optim(par=start_vals_log, fn=mscom_nll,
+                  C_mat=C_mat, nstocks=nstocks, nyrs=nyrs, ref_stock=ref_stock,
+                  control=list(trace=1, maxit=10000))
+  
+  # Return fit
+  return(optfit)
+  
+}
 
 # Extract results
 get_results <- function(msfit){
@@ -226,55 +269,18 @@ get_results <- function(msfit){
 }
 
 
-# Extract parameters
-par <- optfit$par
-r_pred <- par["r",]
-k_pred <- par["k",]
-msy_pred <- r_pred * k_pred / 4
-bmsy_pred <- k_pred / 2
-fmsy_pred <- r_pred / 2
+# Test model
+################################################################################
 
-# Build data
-B_mat <- matrix(data=NA, ncol=nstocks, nrow=nyrs)
-B_mat[1,] <- par["k",]
-for(i in 1:nstocks){
-  # Extract coefs
-  r <- par["r",i]
-  k <- par["k",i]
-  # Build trajectories
-  for(j in 2:nyrs){
-    B_mat[j,i] <- B_mat[j-1,i] + r * B_mat[j-1,i] * (1-B_mat[j-1,i]/k) - C_mat[j-1,i]
-  }
-}
-F_mat <- C_mat / B_mat
-bbmsy_mat <- t(t(B_mat) / bmsy_pred)
-bbmsy_end <- bbmsy_mat[nyrs,]
-status_end <- bbmsy2status(bbmsy_end)
+# Fit MSCOM
+msfit <- mscom(C_mat=C_mat, years=yrs, stocks=stocks, res=res_true, ref_stock=1)
 
-# Compare predictions
-pmat <- data.frame(stocks, 
-                   r_true=ri_true, r_pred,
-                   k_true=ki_true, k_pred,
-                   msy_true, msy_pred,
-                   bmsy_true, bmsy_pred,
-                   fmsy_true, fmsy_pred,
-                   bbmsy_end_true, bbmsy_end,
-                   status_end_true, status_end)
+# Get MSCOM results
+msout <- get_results(msfit)
 
-# Plot predictions
-plot_biomass(B_mat, yrs)
-plot_f(F_mat, yrs)
+# Plot results
+par(mfrow=c(1,1))
+plot_bbmsy(msout[["BBMSY_mat"]], yrs)
 
 
 
-
-
-
-
-
-
-
-
-
-
-  

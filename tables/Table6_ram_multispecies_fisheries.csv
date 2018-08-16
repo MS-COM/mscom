@@ -1,0 +1,29 @@
+"fishery","name","stockid","catch","resilience","m"
+"Australia SE scalefish and shark fishery","Tiger flathead (Platycephalus richardsoni)","TIGERFLATSE","3280 / 45.3%","Medium",0.361661570898477
+"Australia SE scalefish and shark fishery","Silver warehou (Seriolella punctata)","SILVERFISHSE","3044 / 42.1%","Medium",0.401299105334464
+"Australia SE scalefish and shark fishery","Ling (Genypterus blacodes)","NZLINGESE","913 / 12.6%","Low",0.193380201671126
+"Australia SE scalefish and shark fishery","Blue grenadier (Macruronus novaezelandiae)","BGRDRSE","no catch data","Low",0.237023380049284
+"NZ Chatham Rise middle-depth fishery","Hoki (Macruronus novaezelandiae)","HOKIENZ","63070 / 91.9%","Low",0.237023380049284
+"NZ Chatham Rise middle-depth fishery","Ling (Genypterus blacodes)","NZLINGLIN3-4","4066 / 5.9%","Low",0.193380201671126
+"NZ Chatham Rise middle-depth fishery","Southern hake (Merluccius australis)","SOUTHHAKECR","1464 / 2.1%","Low",0.233194925626374
+"US BSAI groundfish fishery","Walleye pollock (Theragra chalcogramma)","WPOLLEBS","1190200 / 90%","Low",0.406954615049328
+"US BSAI groundfish fishery","Yellowfin sole (Limanda aspera)","YSOLEBSAI","131080 / 9.9%","Low",0.153311319563509
+"US BSAI groundfish fishery","Walleye pollock (Theragra chalcogramma)","WPOLLAI","1764 / 0.1%","Low",0.406954615049328
+"US BSAI groundfish fishery","Pacific cod (Gadus macrocephalus)","PCODBSAI","no catch data","Low",0.403583439350381
+"US GB groundfish fishery","Haddock (Melanogrammus aeglefinus)","HADGB","18870 / 62.8%","Medium",0.354265019571743
+"US GB groundfish fishery","Atlantic cod (Gadus morhua)","CODGB","5934 / 19.7%","Medium",0.270287991797001
+"US GB groundfish fishery","Yellowtail flounder (Limanda ferruginea)","YELLGB","3226 / 10.7%","Medium",0.219156861681078
+"US GB groundfish fishery","Winter flounder (Pseudopleuronectes americanus)","WINFLOUN5Z","2024 / 6.7%","Medium",0.335817999116794
+"US GB/GOM groundfish fishery","Pollock (Pollachius virens)","POLL5YZ","8460 / 58.4%","Medium",0.213934974123137
+"US GB/GOM groundfish fishery","Acadian redfish (Sebastes fasciatus)","ACADREDGOMGB","2279 / 15.7%","Low",0.139530289127198
+"US GB/GOM groundfish fishery","White hake (Urophycis tenuis)","WHAKEGBGOM","2212 / 15.3%","Low",0.207190057658322
+"US GB/GOM groundfish fishery","American plaice (Hippoglossoides platessoides)","AMPL5YZ","1531 / 10.6%","Low",0.210817512287924
+"US GOM groundfish fishery","Atlantic cod (Gadus morhua)","CODGOM","4860 / 63.9%","Medium",0.270287991797001
+"US GOM groundfish fishery","Witch flounder (Glyptocephalus cynoglossus)","WITFLOUN5Y","884 / 11.6%","Low",0.224851030266693
+"US GOM groundfish fishery","Haddock (Melanogrammus aeglefinus)","HAD5Y","867 / 11.4%","Medium",0.354265019571743
+"US GOM groundfish fishery","Yellowtail flounder (Limanda ferruginea)","YELLCCODGOM","713 / 9.4%","Medium",0.219156861681078
+"US GOM groundfish fishery","Winter flounder (Pseudopleuronectes americanus)","WINFLOUND5Y","279 / 3.7%","Medium",0.335817999116794
+"US West Coast DTS fishery","Dover sole (Microstomus pacificus)","DSOLEPCOAST","9284 / 52.6%","Low",0.143726560356019
+"US West Coast DTS fishery","Sablefish (Anoplopoma fimbria)","SABLEFPCOAST","6188 / 35.1%","Very low",0.285281648960246
+"US West Coast DTS fishery","Longspine thornyhead (Sebastolobus altivelis)","LSTHORNHPCOAST","1137 / 6.4%","Low",0.0973836937971203
+"US West Coast DTS fishery","Shortspine thornyhead (Sebastolobus alascanus)","SSTHORNHPCOAST","1036 / 5.9%","Very low",0.0555023610420896
