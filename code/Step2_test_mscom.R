@@ -13,11 +13,23 @@ library(TMB)
 library(RColorBrewer)
 
 # Directories
-tmbdir <- "code/tmb"
-datadir <- "data/simulated"
-ramdir <- "code/ram_stocks/data"
-codedir <- "code/helper_functions"
-plotdir <- "figures"
+# tmbdir <- "code/tmb"
+# datadir <- "data/simulated"
+# ramdir <- "code/ram_stocks/data"
+# codedir <- "code/helper_functions"
+# plotdir <- "figures"
+
+## for windows
+maindir <- "C:\\merrill\\MS-COM\\mscom"
+tmbdir <- file.path(maindir, "code","tmb")
+datadir <- file.path(maindir, "data","simulated")
+ramdir <- file.path(maindir, "code", "ram_stocks","data")
+codedir <- file.path(maindir, "code", "helper_functions")
+plotdir <- file.path(maindir,"figures")
+
+setwd(tmbdir)
+compile("mscom.cpp")
+
 
 # Read helper functions
 helpers <- list.files(codedir)
