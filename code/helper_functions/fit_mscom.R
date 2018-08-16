@@ -86,6 +86,7 @@ fit_mscom <- function(catch, id_fixed=NA,
   
   # Setup model
   obj <- MakeADFun(data=data, parameters=params, map=map, DLL="mscom", silent=TRUE)
+  check <- TMBhelper::Check_Identifiable(obj)
   
   # If no priors, add upper and lower limits on parameters
   lwr <- rep(-Inf, length(obj$par))
@@ -104,7 +105,7 @@ fit_mscom <- function(catch, id_fixed=NA,
   }
   
   # Fit model
-  opt <- TMBhelper::Optimize(obj=obj, loopnum=3, lower=lwr, upper=upr)
+  opt <- TMBhelper::Optimize(obj=obj, newtonsteps=3, lower=lwr, upper=upr)
   
   # Generate reports
   report <- obj$report()
@@ -114,7 +115,7 @@ fit_mscom <- function(catch, id_fixed=NA,
   setwd(wd)
   
   # Return model and reports
-  out <- list(opt, report, sdreport)
+  out <- list(obj, opt, report, sdreport)
   return(out)
 
 }
