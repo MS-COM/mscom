@@ -10,16 +10,22 @@ library(dplyr)
 library(reshape2)
 library(ggplot2)
 library(RColorBrewer)
+library(TMB)
 
 # Directories
 tmbdir <- "code/tmb"
 datadir <- "data/simulated"
 codedir <- "code/helper_functions"
 
+## for windows
+maindir <- "C:\\merrill\\MS-COM\\mscom"
+tmbdir <- file.path(maindir, "code","tmb")
+datadir <- file.path(maindir, "data","simulated")
+codedir <- file.path(maindir, "code","helper_functions")
+
 # Read helper functions
 helpers <- list.files(codedir)
 ignore <- sapply(1:length(helpers), function(x) source(file.path(codedir, helpers[x])))
-
 
 # Simulate data
 ################################################################################
