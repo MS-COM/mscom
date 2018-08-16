@@ -86,7 +86,7 @@ fit_mscom <- function(catch, id_fixed=NA,
   
   # Setup model
   obj <- MakeADFun(data=data, parameters=params, map=map, DLL="mscom", silent=TRUE)
-  check <- TMBhelper::Check_Identifiable(obj)
+  # check <- TMBhelper::Check_Identifiable(obj)
   
   # If no priors, add upper and lower limits on parameters
   lwr <- rep(-Inf, length(obj$par))
