@@ -106,8 +106,8 @@ sims <- lapply(1:nrow(scenarios), function(x){
 	return(sim)
 })
 
-save(sims, file=file.path(datadir, "sim_scenarios_pelagic_longline.Rdata"))
-
+save(sims, file=file.path(datadir, "sim_pelagic_longline_byScenario.Rdata"))
+save(scenarios, file=file.path(datadir, "scenarios_pelagic_longline.Rdata"))
 ## plot example
 
 	simdf <- melt(sims[[1]], id.var=c('Species','Year'))
