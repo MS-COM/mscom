@@ -32,29 +32,29 @@ ignore <- sapply(1:length(helpers), function(x) source(file.path(codedir, helper
 ###############################
 
 ## variability
-var_vec <- c("deterministic")#, "variable")
+var_vec <- c("deterministic", "variable")
 
 ## initial depletion
-depl_vec <- c("unfished")#, "fished_same", "fished_diff")
+depl_vec <- c("unfished", "fished")
 
 ## effort dynamics
-effdyn_vec <- c("one-way")#, "two-way")
+effdyn_vec <- c("one-way", "two-way")
 
 ## magnitude of maximum fishing mortality
 fmag_vec <- c("past_fmsy")#, "at_fmsy", 'below_fmsy')
 
 ## length of time series
-time_vec <- 50
+nyears_vec <- 50
 
 ## strength of effort correlation
-fdev_vec <- 0.1
+fdev_vec <- c(0,0.1)
 
 ## scenario combinations
 scenarios <- expand.grid("PopDyn"=var_vec,
-						"InitDepl"=depl_vec,
+						"DataStart"=depl_vec,
 						"EffDyn"=effdyn_vec,
 						"MaxF"=fmag_vec,
-						"TimeSeries"=time_vec,
+						"Nyears"=nyears_vec,
 						"EffSD"=fdev_vec)
 
 # Simulate data
@@ -69,11 +69,6 @@ sims <- lapply(1:nrow(scenarios), function(x){
 	# Parameters
 	species <- c("tuna","billfish","shark")
 
-	## initial depletion options
-	if(scenarios[x,'InitDepl']=="unfished") init_depl <- rep(1,length(species))
-	if(scenarios[x,'InitDepl']=="fished_same") init_depl <- rep(0.8,length(species))
-	if(scenarios[x,'InitDepl']=="fished_diff") init_depl <- seq(from=0.4, to=0.8, length.out=length(species))
-
 	## maximum F options
 	if(scenarios[x,"MaxF"]=="past_fmsy") maxF <- rep(1.1,length(species))
 	if(scenarios[x,"MaxF"]=="at_fmsy") maxF <- rep(1, length(species))
@@ -85,13 +80,15 @@ sims <- lapply(1:nrow(scenarios), function(x){
 		rho <- 0
 	}
 	if(scenarios[x,"PopDyn"]=="variable"){
-		sigR <- 0.7
+		sigR <- 0.15
 		rho <- 0.4
 	}
 
+	if(scenarios[x,'DataStart']=="unfished") ystart <- rep(1,length(species))
+	if(scenarios[x,"DataStart"]=="fished") ystart <- rep(21,length(species))
 	input_df <- data.frame("SpeciesName"=species,
 							"EffDyn"=scenarios[x,"EffDyn"],
-							"InitDepl"=init_depl,
+							"YearStart"=ystart,
 							"MSYscalar"=maxF,
 							"SigmaR"=sigR, "rho"=rho,
 							"SigmaF"=scenarios[x,"EffSD"],
@@ -101,24 +98,29 @@ sims <- lapply(1:nrow(scenarios), function(x){
 
 	## simulate populations
 	sim <- sim_pops(input_df=input_df, 
-					nyears=scenarios[x,"TimeSeries"], 
+					nyears=scenarios[x,"Nyears"], 
 					seed=1122, 
 					model="biomass-dynamic")
 
-	## plot simulation results
-	ggplot(sim %>% dplyr::filter(variable %in% c("RelativeCatch","ExploitRate","RelativeEffort","Depletion"))) +
-	geom_line(aes(x=Year, y=value, colour=Species), lwd=2) +
-	facet_wrap(~variable, scales='free_y') +
-	theme_lsd() +
-	coord_cartesian(ylim=c(0,1.01))
-
-	## plot simulation results
-	ggplot(sim %>% dplyr::filter(variable %in% c("BBmsy","UUmsy"))) +
-	geom_line(aes(x=Year, y=value, colour=Species), lwd=2) +
-	facet_wrap(~variable, scales='free_y') +
-	theme_lsd()
-
+	return(sim)
 })
+
+
+	# simdf <- melt(sim, id.var=c('Species','Year'))
+
+	# # ## plot simulation results
+	# ggplot(simdf %>% dplyr::filter(variable %in% c("RelativeCatch","ExploitRate","RelativeEffort","Depletion"))) +
+	# geom_line(aes(x=Year, y=value, colour=Species), lwd=2) +
+	# facet_wrap(~variable, scales='free_y') +
+	# theme_lsd() +
+	# coord_cartesian(ylim=c(0,1.01))
+
+	# ## plot simulation results
+	# ggplot(sim) +
+	# geom_line(aes(x=BBmsy, y=UUmsy, colour=Species), lwd=2) +
+	# theme_lsd() +
+	# geom_hline(yintercept=1) +
+	# geom_vline(xintercept=1)
 
 
 # Extract catch

@@ -31,12 +31,6 @@ setwd(tmbdir)
 compile("mscom.cpp")
 
 
-# # Read data
-# simtest <- readRDS(file.path(datadir, "simtest.rds"))
-# true <- readRDS(file.path(datadir, "simtest_true.rds"))
-# catch <- simtest$catch
-# species <- c("tuna", "billfish", "shark")
-
 # Read helper functions
 helpers <- list.files(codedir)
 ignore <- sapply(1:length(helpers), function(x) source(file.path(codedir, helpers[x])))
