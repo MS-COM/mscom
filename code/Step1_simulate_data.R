@@ -66,7 +66,8 @@ scenarios <- expand.grid("PopDyn"=var_vec,
 # Shark = Mako shark (Isurus oxyrinchus)
 
 sims <- lapply(1:nrow(scenarios), function(x){
-	# Parameters
+# for(x in 1:nrow(scenarios)){
+	## Parameters
 	species <- c("tuna","billfish","shark")
 
 	## maximum F options
@@ -105,44 +106,25 @@ sims <- lapply(1:nrow(scenarios), function(x){
 	return(sim)
 })
 
+save(sims, file=file.path(datadir, "sim_scenarios_pelagic_longline.Rdata"))
 
-	# simdf <- melt(sim, id.var=c('Species','Year'))
+## plot example
 
-	# # ## plot simulation results
-	# ggplot(simdf %>% dplyr::filter(variable %in% c("RelativeCatch","ExploitRate","RelativeEffort","Depletion"))) +
-	# geom_line(aes(x=Year, y=value, colour=Species), lwd=2) +
-	# facet_wrap(~variable, scales='free_y') +
-	# theme_lsd() +
-	# coord_cartesian(ylim=c(0,1.01))
+	simdf <- melt(sims[[1]], id.var=c('Species','Year'))
 
 	# ## plot simulation results
-	# ggplot(sim) +
-	# geom_line(aes(x=BBmsy, y=UUmsy, colour=Species), lwd=2) +
-	# theme_lsd() +
-	# geom_hline(yintercept=1) +
-	# geom_vline(xintercept=1)
+	ggplot(simdf %>% dplyr::filter(variable %in% c("RelativeCatch","ExploitRate","RelativeEffort","Depletion"))) +
+	geom_line(aes(x=Year, y=value, colour=Species), lwd=2) +
+	facet_wrap(~variable, scales='free_y') +
+	theme_lsd() +
+	coord_cartesian(ylim=c(0,1.01))
 
-
-# Extract catch
-catch_oneway <- sim_oneway %>% filter(variable=="Catch")
-input_oneway <- sapply(1:length(species), function(x){
-	sub <- catch_oneway %>% filter(Species==species[x])
-	df <- sub$value
-	return(df)
-})
-colnames(input_oneway) <- species
-
-# Format data
-true <- oneway_mat
-data <- dcast(sim_oneway, Species + Year ~ variable, value.var="value")
-
-
-# Export data
-################################################################################
-
-# Export data
-save(data, true, file=file.path(datadir, "sim_pelagic_longline.Rdata"))
-
+	## plot simulation results
+	ggplot(sim) +
+	geom_line(aes(x=BBmsy, y=UUmsy, colour=Species), lwd=2) +
+	theme_lsd() +
+	geom_hline(yintercept=1) +
+	geom_vline(xintercept=1)
 
 
 
