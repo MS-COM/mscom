@@ -111,6 +111,7 @@ save(scenarios, file=file.path(datadir, "scenarios_pelagic_longline.Rdata"))
 ## plot example
 
 	simdf <- melt(sims[[1]], id.var=c('Species','Year'))
+	sim <- sims[[1]]
 
 	# ## plot simulation results
 	ggplot(simdf %>% dplyr::filter(variable %in% c("RelativeCatch","ExploitRate","RelativeEffort","Depletion"))) +
