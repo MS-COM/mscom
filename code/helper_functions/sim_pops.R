@@ -124,7 +124,7 @@ sim_pops <- function(input_df,
 			qtout <- qt[input_df$YearStart[x]:length(qt)]
 
 
-			out <- data.frame("Species"=species[x], "Year"=seq_along(input_df$YearStart[x]:Tyears[[x]]), "Biomass"=btout, "Catch"=ctout, "ExploitRate"=utout, "qt"=qtout, "Effort"=etout, "Depletion"=btout/sp$K,"Bmsy"=bmsy, "Umsy"=umsy,"MSY"=msy, "UUmsy"=utout/umsy,"BBmsy"=btout/bmsy)
+			out <- data.frame("Species"=species[x], "Year"=seq_along(input_df$YearStart[x]:Tyears[[x]]), "Biomass"=btout, "Catch"=ctout, "ExploitRate"=utout, "qt"=qtout, "Effort"=etout, "Depletion"=btout/sp$K,"Bmsy"=bmsy, "Umsy"=umsy,"MSY"=msy, "UUmsy"=utout/umsy,"BBmsy"=btout/bmsy, "r"=r, "K"=K, "p"=p)
 
 			return(out)
 		})
