@@ -28,7 +28,8 @@ codedir <- file.path(maindir, "code", "helper_functions")
 plotdir <- file.path(maindir,"figures")
 
 setwd(tmbdir)
-compile("mscom.cpp")
+version <- "mscom_v2" ## alterate: previous version "mscom.cpp"
+compile(paste0(version,".cpp"))
 
 
 # Read helper functions
@@ -40,41 +41,29 @@ ignore <- sapply(1:length(helpers), function(x) source(file.path(codedir, helper
 ################################################################################
 
 # Read data
-load(file.path(datadir, "sim_pelagic_longline.Rdata"))
+load(file.path(datadir, "sim_pelagic_longline_byScenario.Rdata"))
+load(file.path(datadir, "scenarios_pelagic_longline.Rdata"))
 
-# Format data
-data$bbmsy <- data$Biomass/data$Bmsy
-data$uumsy <- data$ExploitRate/data$Umsy
-
-# Format catch
-catch <- dcast(data, Year ~ Species, value.var="Catch")
-catch <- as.matrix(select(catch, -Year))
-species <- colnames(catch)
-
-# Format true values
-true_orig <- true
-B_ts <- as.matrix(select(dcast(data, Year ~ Species, value.var="Biomass"), -Year))
-U_ts <- as.matrix(select(dcast(data, Year ~ Species, value.var="ExploitRate"), -Year))
-BBMSY_ts <- as.matrix(select(dcast(data, Year ~ Species, value.var="bbmsy"), -Year))
-UUMSY_ts <- as.matrix(select(dcast(data, Year ~ Species, value.var="uumsy"), -Year))
-true <- NULL
-true$B_ts <- B_ts
-true$U_ts <- U_ts
-true$Bmsy <- unique(data$Bmsy)
-true$Umsy <- unique(data$Umsy)
 
 # Fit model
 ################################################################################
 
+## scenario 1 example
+sim <- sims[[1]]
+species <- unique(sim$Species)
+
 # True parameters
-r_true <- c(0.67, 0.11, 0.60)
-k_true <- c(227, 738, 304)
+r_true <- sapply(1:length(species), function(x) unique(sim[which(sim$Species==species[x]),"r"])) #c(0.67, 0.11, 0.60)
+k_true <- sapply(1:length(species), function(x) unique(sim[which(sim$Species==species[x]),"K"]))  #c(227, 738, 304)
 id_true <- rep(1,length(k_true))
 
+catch <- as.matrix(dcast(sim, Year ~ Species, value.var="Catch") %>% select(-Year))
+effort <- as.matrix(dcast(sim, Year ~ Species, value.var="Effort") %>% select(-Year))
+
 # Set priors
-r_priors <- cbind(r_true, rep(10, ncol(catch)))
-k_priors <- cbind(k_true, rep(1000, ncol(catch)))
-id_priors <- cbind(id_true, rep(1, ncol(catch)))
+r_priors <- cbind(r_true, rep(10, length(species)))
+k_priors <- cbind(k_true, rep(1000, length(species)))
+id_priors <- cbind(id_true, rep(1, length(species)))
 
 # Plot priors
 plot_priors(priors=list(r_priors, k_priors, id_priors),
@@ -83,8 +72,12 @@ plot_priors(priors=list(r_priors, k_priors, id_priors),
 
 
 # 1. MSCOM - ID fixed at 1.0 and defaults
-fit1 <- fit_mscom(catch=catch, id_fixed=T)
+fit1 <- fit_mscom(catch=catch, id_fixed=T, version=version)
 plot_mscom(model=fit1, true=true)
+
+## use for debugging - will require edits to fixed parameters inside fit_mscom function -- will need to either allow for setting those outside of this function or hard-code a method for dealing with convergence problems inside the function
+check <- TMBhelper::Check_Identifiable(fit1$obj)
+
 
 # 2. MSCOM - ID estimated and defaults
 fit2 <- fit_mscom(catch=catch, id_fixed=F)
@@ -131,3 +124,20 @@ plot_mscom1(model=fit6, years=dts$catch_use$year, stocks=colnames(dts_catch1), t
 
 
 
+
+# # Format catch
+# catch <- data %>% select(Catch)
+# catch <- as.matrix(select(catch, -Year))
+# species <- colnames(catch)
+
+# # Format true values
+# true_orig <- true
+# B_ts <- as.matrix(select(dcast(data, Year ~ Species, value.var="Biomass"), -Year))
+# U_ts <- as.matrix(select(dcast(data, Year ~ Species, value.var="ExploitRate"), -Year))
+# BBMSY_ts <- as.matrix(select(dcast(data, Year ~ Species, value.var="bbmsy"), -Year))
+# UUMSY_ts <- as.matrix(select(dcast(data, Year ~ Species, value.var="uumsy"), -Year))
+# true <- NULL
+# true$B_ts <- B_ts
+# true$U_ts <- U_ts
+# true$Bmsy <- unique(data$Bmsy)
+# true$Umsy <- unique(data$Umsy)
