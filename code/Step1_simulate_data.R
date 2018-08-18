@@ -64,54 +64,19 @@ scenarios <- expand.grid("PopDyn"=var_vec,
 # Tuna: Yellowfin tun (Thunnus albacares)
 # Billfish = Striped marlin (Kajikia audax)
 # Shark = Mako shark (Isurus oxyrinchus)
+itervec <- 1:10
 
-sims <- lapply(1:nrow(scenarios), function(x){
-# for(x in 1:nrow(scenarios)){
-	## Parameters
-	species <- c("tuna","billfish","shark")
-
-	## maximum F options
-	if(scenarios[x,"MaxF"]=="past_fmsy") maxF <- rep(1.1,length(species))
-	if(scenarios[x,"MaxF"]=="at_fmsy") maxF <- rep(1, length(species))
-	if(scenarios[x,"MaxF"]=="below_fmsy") maxF <- rep(0.8, length(species))
-
-	## recruitment variability
-	if(scenarios[x,"PopDyn"]=="deterministic"){
-		sigR <- 0
-		rho <- 0
-	}
-	if(scenarios[x,"PopDyn"]=="variable"){
-		sigR <- 0.15
-		rho <- 0.4
-	}
-
-	if(scenarios[x,'DataStart']=="unfished") ystart <- rep(1,length(species))
-	if(scenarios[x,"DataStart"]=="fished") ystart <- rep(21,length(species))
-	input_df <- data.frame("SpeciesName"=species,
-							"EffDyn"=scenarios[x,"EffDyn"],
-							"YearStart"=ystart,
-							"MSYscalar"=maxF,
-							"SigmaR"=sigR, "rho"=rho,
-							"SigmaF"=scenarios[x,"EffSD"],
-							"r" = c(0.6, 0.67, 0.11),
-							"K"=c(304, 227, 738),
-							"p"=rep(0.2,length(species)))
-
-	## simulate populations
-	sim <- sim_pops(input_df=input_df, 
-					nyears=scenarios[x,"Nyears"], 
-					seed=1122, 
-					model="biomass-dynamic")
-
-	return(sim)
+## run multiple iterations
+sim_byIter <- lapply(1:length(itervec), function(i){
+  sim <- sim_scenarios(savedir=datadir, scen_df=scenarios, fishery="pelagic_longline", seed=itervec[i], iter=itervec[i])
+  return(sim)
 })
 
-save(sims, file=file.path(datadir, "sim_pelagic_longline_byScenario.Rdata"))
 save(scenarios, file=file.path(datadir, "scenarios_pelagic_longline.Rdata"))
-## plot example
 
-	simdf <- melt(sims[[1]], id.var=c('Species','Year'))
-	sim <- sims[[1]]
+## plot example - first iteration, first scenario
+	simdf <- melt(sim_byIter[[1]][[1]], id.var=c('Species','Year'))
+	sim <- sim_byIter[[1]][[1]]
 
 	# ## plot simulation results
 	ggplot(simdf %>% dplyr::filter(variable %in% c("RelativeCatch","ExploitRate","RelativeEffort","Depletion"))) +
@@ -126,9 +91,6 @@ save(scenarios, file=file.path(datadir, "scenarios_pelagic_longline.Rdata"))
 	theme_lsd() +
 	geom_hline(yintercept=1) +
 	geom_vline(xintercept=1)
-
-
-
 
 
 
