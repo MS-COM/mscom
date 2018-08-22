@@ -28,7 +28,7 @@ ignore <- sapply(1:length(helpers), function(x) source(file.path(codedir, helper
 ################################################################################
 
 # Read data
-load(file.path(datadir, "sim_pelagic_longline.Rdata"))
+load(file.path(datadir, "sim_pelagic_longline1.Rdata"))
 
 # Format data
 data$bbmsy <- data$Biomass / data$Bmsy
@@ -59,7 +59,7 @@ true$bbmsy_ts <- dcast(data, Year ~ Species, value.var="bbmsy")
 ################################################################################
 
 # Run and plot
-out <- fit_mssra(catch=catch, years=yrs, stocks=species, res=res)
+out <- fit_mssra(catch=catch, years=yrs, stocks=species, res=res, id_fixed=F)
 plot_mssra(out, true)
 
 
