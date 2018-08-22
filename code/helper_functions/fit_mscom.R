@@ -1,7 +1,7 @@
 
 # Function to fit the MSCOM
 # To compile model: compile("mscom.cpp")
-# id_fixed <- F; r_priors=NA; k_priors=NA; id_priors=NA
+# catch <- catch; id_fixed <- T; r_priors=NA; k_priors=NA; id_priors=NA
 fit_mscom <- function(catch, id_fixed=NA,
                       r_priors=NA, k_priors=NA, id_priors=NA){
   
@@ -97,7 +97,7 @@ fit_mscom <- function(catch, id_fixed=NA,
   }
   if(k_prior_yn==0){
     lwr[which(names(obj$par)=="logK")] <- log(cmaxs)
-    upr[which(names(obj$par)=="logK")] <- log(cmaxs*100)
+    upr[which(names(obj$par)=="logK")] <- log(cmaxs*50)
   }
   if(id_prior_yn==0){
     lwr[which(names(obj$par)=="delta_s")] <- 0.25
@@ -105,7 +105,7 @@ fit_mscom <- function(catch, id_fixed=NA,
   }
   
   # Fit model
-  opt <- TMBhelper::Optimize(obj=obj, newtonsteps=3, lower=lwr, upper=upr)
+  opt <- TMBhelper::Optimize(obj=obj, loopnum=3, lower=lwr, upper=upr)
   
   # Generate reports
   report <- obj$report()
@@ -115,7 +115,7 @@ fit_mscom <- function(catch, id_fixed=NA,
   setwd(wd)
   
   # Return model and reports
-  out <- list(obj, opt, report, sdreport)
+  out <- list(opt, report, sdreport, obj)
   return(out)
 
 }
