@@ -3,7 +3,7 @@
 # To compile model: compile("mscom.cpp")
 # catch <- catch; id_fixed <- T; r_priors=NA; k_priors=NA; id_priors=NA
 fit_mscom <- function(catch, id_fixed=NA,
-                      r_priors=NA, k_priors=NA, id_priors=NA){
+                      r_priors=NA, k_priors=NA, id_priors=NA, version){
   
   # Load model
   wd <- getwd()
@@ -65,14 +65,33 @@ fit_mscom <- function(catch, id_fixed=NA,
                "delta_means"=id_means, # initial depletion prior means
                "delta_sds"=id_sds) # initial depletion prior sds
   
-  # Package starting values
-  params <- list("logr"=log(r_means), # r, intrinsic growth rate (1 per stock)
+  if(version=="mscom"){
+      params <- list("logr"=log(r_means), # r, intrinsic growth rate (1 per stock)
                  "logK"=log(k_means), # K, carrying capacity (1 per stock)
                  "delta_s"=rep(1, ncol(catch)), # initial depletion (1 per stock)
                  "logq"=rep(log(1e-2), ncol(catch)), # q, catchability (1 per stock)
                  "logsigmaC"=log(10), # sd of exploitation likelihood (1 overall)
                  "lE_t"=rep(log(1), nrow(catch))) # effort time series (shared btw stocks)
-  
+      
+      Random <- NULL
+  }
+  if(version=="mscom_v2"){
+    # Package starting values
+    params <- list("logr_s"=log(r_means), # r, intrinsic growth rate (1 per stock)
+                   "logK_s"=log(k_means), # K, carrying capacity (1 per stock)
+                   "logp_s"=log(rep(0.2, ncol(catch))),
+                   "delta_s"=rep(1, ncol(catch)), # initial depletion (1 per stock)
+                   "logq_s"=rep(log(1e-2), ncol(catch)), # q, catchability (1 per stock)
+                   "logsigmaC"=log(10), # sd of exploitation likelihood (1 overall)
+                   # "lU_t"=rep(log(0.5),nrow(catch)))
+                   "logmuE"=log(0.5),
+                   "logsigmaE"=log(1),
+                  "Eps_t"=rep(0, nrow(catch))) # effort time series (shared btw stocks)
+
+    Random <- "Eps_t"
+    # Random <- NULL
+  }
+
   # Fix some parameters
   # Fix logsigmaC to 10 to aid model convergence
   map <- list()
@@ -83,21 +102,22 @@ fit_mscom <- function(catch, id_fixed=NA,
     map[["delta_s"]] <- rep(NA, ncol(catch))
     map[["delta_s"]] <- factor(map[["delta_s"]])
   }
-  
+
   # Setup model
-  obj <- MakeADFun(data=data, parameters=params, map=map, DLL="mscom", silent=TRUE)
-  # check <- TMBhelper::Check_Identifiable(obj)
+  obj <- MakeADFun(data=data, parameters=params, map=map, random=Random, DLL=version)
   
   # If no priors, add upper and lower limits on parameters
   lwr <- rep(-Inf, length(obj$par))
   upr <- rep(Inf, length(obj$par))
   if(r_prior_yn==0){
-    lwr[which(names(obj$par)=="logr")] <- log(0.001)
-    upr[which(names(obj$par)=="logr")] <- log(0.99)
+    lwr[which(names(obj$par)=="logr_s")] <- log(0.001)
+    upr[which(names(obj$par)=="logr_s")] <- log(0.99)
   }
   if(k_prior_yn==0){
     lwr[which(names(obj$par)=="logK")] <- log(cmaxs)
     upr[which(names(obj$par)=="logK")] <- log(cmaxs*50)
+    lwr[which(names(obj$par)=="logK_s")] <- log(cmaxs)
+    upr[which(names(obj$par)=="logK_s")] <- log(cmaxs*100)
   }
   if(id_prior_yn==0){
     lwr[which(names(obj$par)=="delta_s")] <- 0.25
@@ -105,8 +125,10 @@ fit_mscom <- function(catch, id_fixed=NA,
   }
   
   # Fit model
-  opt <- TMBhelper::Optimize(obj=obj, loopnum=3, lower=lwr, upper=upr)
-  
+  # opt <- TMBhelper::Optimize(obj=obj, loopnum=3, lower=lwr, upper=upr)
+  opt <- TMBhelper::Optimize(obj=obj, lower=lwr, upper=upr, newtonsteps=3)
+    # check <- TMBhelper::Check_Identifiable(obj)
+
   # Generate reports
   report <- obj$report()
   sdreport <- sdreport(obj)

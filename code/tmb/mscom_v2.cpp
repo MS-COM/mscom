@@ -38,12 +38,18 @@ Type objective_function<Type>::operator() ()
 
 
   // ======== Parameters ==========================
-  PARAMETER_VECTOR(logr);
-  PARAMETER_VECTOR(logK);
+  PARAMETER_VECTOR(logr_s);
+  PARAMETER_VECTOR(logK_s);
+  PARAMETER_VECTOR(logp_s);
   PARAMETER_VECTOR(delta_s);
-  PARAMETER_VECTOR(logq);
+  PARAMETER_VECTOR(logq_s);
   PARAMETER(logsigmaC);
-  PARAMETER_VECTOR(lE_t);
+
+  // ======== Random effects =====================
+  // PARAMETER_VECTOR(lE_t);
+  PARAMETER(logmuE);
+  PARAMETER(logsigmaE);
+  PARAMETER_VECTOR(Eps_t);
 
   // ============ Global values ===================
 
@@ -53,16 +59,27 @@ Type objective_function<Type>::operator() ()
   //----- transformations
   vector<Type> r_s(n_s);
   vector<Type> K_s(n_s);
+  vector<Type> p_s(n_s);
   vector<Type> q_s(n_s);
+  vector<Type> msy_s(n_s);
+  vector<Type> Bmsy_s(n_s);
+  vector<Type> Umsy_s(n_s);
   for(int s=0;s<n_s;s++){
-    r_s(s) = exp(logr(s));
-    K_s(s) = exp(logK(s));
-    q_s(s) = exp(logq(s));
+    r_s(s) = exp(logr_s(s));
+    K_s(s) = exp(logK_s(s));
+    p_s(s) = exp(logp_s(s));
+    q_s(s) = exp(logq_s(s));
+    msy_s(s) = (r_s(s)*K_s(s))/(pow((p_s(s)+1), (p_s(s)+1)/p_s(s)));
+    Bmsy_s(s) = K_s(s) * pow((1/(p_s(s)+1)), 1/p_s(s));
+    Umsy_s(s) = msy_s(s)/Bmsy_s(s);
   }
   Type sigmaC = exp(logsigmaC);
+  Type sigmaE = exp(logsigmaE);
 
+  vector<Type> lE_t(n_t);
   vector<Type> E_t(n_t);
   for(int t=0;t<n_t;t++){
+    lE_t(t) = logmuE + Eps_t(t) - pow(sigmaE,2)/Type(2);
     E_t(t) = exp(lE_t(t));
   }
 
@@ -80,27 +97,27 @@ Type objective_function<Type>::operator() ()
   for(int s=0;s<n_s;s++){
     for(int t=0;t<n_t;t++){
       if(t==0) B_ts(t,s) = K_s(s) * delta_s(s);
-      if(t>0) B_ts(t,s) = B_ts(t-1,s) + r_s(s) * B_ts(t-1,s) * (1 - B_ts(t-1,s)/K_s(s)) - C_ts(t-1,s);
+      if(t>0) B_ts(t,s) = B_ts(t-1,s) + (r_s(s)/p_s(s))*B_ts(t-1,s)*(1-pow(B_ts(t-1,s)/K_s(s), p_s(s))) - C_ts(t-1,s);
       B_ts(t,s) = posfun(B_ts(t,s), eps, pen);
     }
   }
 
   // Predicted catch
   matrix<Type> Cpred_ts(n_t,n_s);
-  matrix<Type> U_ts(n_t,n_s);
+  matrix<Type> Upred_ts(n_t,n_s);
   for(int s=0;s<n_s;s++){
     for(int t=0;t<n_t;t++){
-      Cpred_ts(t,s) = q_s(s)*E_t(t)*B_ts(t,s);
+      // Cpred_ts(t,s) = q_s(s)*E_t(t)*B_ts(t,s);
+      Upred_ts(t,s) = q_s(s) * E_t(t);
+      Cpred_ts(t,s) = Upred_ts(t,s) * B_ts(t,s);
     }
   }
 
   //Derive predicted exploitation fractions
   matrix<Type> Uobs_ts(n_t,n_s);
-  matrix<Type> Upred_ts(n_t,n_s);
   for(int s=0;s<n_s;s++){
     for(int t=0;t<n_t;t++){
       Uobs_ts(t,s) = C_ts(t,s) / B_ts(t,s);
-      Upred_ts(t,s) = q_s(s) * E_t(t);  
     }
   }
 
@@ -112,55 +129,56 @@ Type objective_function<Type>::operator() ()
   // ============ Likelihood ===========================
 
   // likelihood of catch
-  matrix<Type> nll_ts(n_t,n_s);
-  nll_ts.setZero();
+  matrix<Type> NLL_Catch_ts(n_t,n_s);
+  NLL_Catch_ts.setZero();
   for(int s=0;s<n_s;s++){
     for(int t=0;t<n_t;t++){
-      nll_ts(t,s) -= dnorm(C_ts(t,s), Cpred_ts(t,s), sigmaC, true);
-      // nll_ts(t,s) -= dnorm(Uobs_ts(t,s), Upred_ts(t,s), sigmaC, true);
-
+      NLL_Catch_ts(t,s) -= dnorm(C_ts(t,s), Cpred_ts(t,s), sigmaC, true);
+      // NLL_Catch_ts(t,s) -= dnorm(Uobs_ts(t,s), Upred_ts(t,s), sigmaC, true);
     }
   }
 
   //priors
-  matrix<Type> nll_sp(n_s,3);
-  nll_sp.setZero();
+  matrix<Type> NLL_Priors_sp(n_s,3);
+  NLL_Priors_sp.setZero();
   if(r_prior==1){
     for(int s=0;s<n_s;s++){
-      nll_sp(s,0) -= dnorm(r_s(s), r_means(s), r_sds(s), true);
+      NLL_Priors_sp(s,0) -= dnorm(r_s(s), r_means(s), r_sds(s), true);
     }
   }
   if(K_prior==1){
     for(int s=0;s<n_s;s++){
-      nll_sp(s,1) -= dnorm(K_s(s), K_means(s), K_sds(s), true);
+      NLL_Priors_sp(s,1) -= dnorm(K_s(s), K_means(s), K_sds(s), true);
     }
   }
   if(delta_prior==1){
     for(int s=0;s<n_s;s++){
-      nll_sp(s,2) -= dnorm(delta_s(s), delta_means(s), delta_sds(s), true);
+      NLL_Priors_sp(s,2) -= dnorm(delta_s(s), delta_means(s), delta_sds(s), true);
     }
   }
 
+ //random effect
+  vector<Type> NLL_RandEff_t(n_t);
+  NLL_RandEff_t(0) = dnorm(Eps_t(0), Type(0.0), sigmaE, true);
+  for(int t=1;t<n_t;t++){
+    NLL_RandEff_t(t) = dnorm(Eps_t(t), Eps_t(t-1), sigmaE, true);
+  }
+
   //likelihood components
-  vector<Type> jnll_comp(3);
+  vector<Type> jnll_comp(4);
   jnll_comp.setZero();
     // likelihood penalty if B negative
     jnll_comp(0) += pen;
     // penalized likelihood from priors
-    jnll_comp(1) += sum(nll_sp);
+    jnll_comp(1) += sum(NLL_Priors_sp);
     // exploitation ratio likelihood
-    jnll_comp(2) += sum(nll_ts);
+    jnll_comp(2) += sum(NLL_Catch_ts);
+    // effort random effect
+    jnll_comp(3) += sum(NLL_RandEff_t);
 
   jnll = sum(jnll_comp);
 
-  // ============ Derived values ==================
-
-  vector<Type> Bmsy_s(n_s);
-  vector<Type> Umsy_s(n_s);
-  for(int s=0;s<n_s;s++){
-    Bmsy_s(s) = K_s(s)/2;
-    Umsy_s(s) = r_s(s)/2;
-  }
+  // // ============ Derived values ==================
 
   matrix<Type> BBmsy_ts(n_t,n_s);
   matrix<Type> UUmsy_cb_ts(n_t,n_s);
@@ -182,6 +200,7 @@ Type objective_function<Type>::operator() ()
   ADREPORT(Uobs_ts);
   ADREPORT(Upred_ts);
   ADREPORT(E_t);
+  // ADREPORT(U_t);
   ADREPORT(BBmsy_ts);
   ADREPORT(UUmsy_cb_ts);
   ADREPORT(UUmsy_qE_ts);
@@ -196,9 +215,11 @@ Type objective_function<Type>::operator() ()
   //-------- parameters
   REPORT(r_s);
   REPORT(K_s);
+  REPORT(p_s);
   REPORT(sigmaC);
   REPORT(q_s);
   REPORT(E_t);
+  // REPORT(U_t);
   REPORT(delta_s);
 
   //--------- derived values
@@ -224,59 +245,13 @@ Type objective_function<Type>::operator() ()
   // REPORT(qavg_s);
   // REPORT(sq_ts);
   // REPORT(ssq_s);
-  REPORT(nll_ts);
-  REPORT(nll_sp);
+  REPORT(NLL_Catch_ts);
+  REPORT(NLL_Priors_sp);
   REPORT(pen);
   REPORT(jnll_comp);
 
   REPORT(jnll);
   return(jnll);
-
-  //Calculate log-ratio of secondary stocks to reference stock
-  // matrix<Type> Z_ts(n_t,n_s);
-  // vector<Type> Zavg_s(n_s);
-  // vector<Type> Zsum_s(n_s);
-  // Zsum_s.setZero();
-  // vector<Type> qavg_s(n_s);
-  // matrix<Type> E_ts(n_t,n_s);
-
-  // for(int s=0;s<n_s;s++){
-  //     for(int t=0;t<n_t;t++){ 
-  //       Z_ts(t,s) = log(U_ts(t,s) / Uref_t(t));
-  //       Zsum_s(s) += Z_ts(t,s);
-  //     }
-  //     //calculate average for each stock
-  //     Zavg_s(s) = Zsum_s(s)/Type(n_t);
-  //     qavg_s(s) = exp(Zavg_s(s));
-
-  //     for(int t=0;t<n_t;t++){
-  //       E_ts(t,s) = U_ts(t,s)/qavg_s(s);
-  //     }
-  // }
-
-  // vector<Type> Eref_t(n_t);
-  // Eref_t = E_ts.col(find_ref);
-
-  // //Calculate SSQ of log-ratio and NLL
-  // matrix<Type> sq_ts(n_t,n_s);
-  // // vector<Type> ssq_s(n_s);
-  // // ssq_s.setZero();
-  // matrix<Type> nll_ts(n_t,n_s);
-  // nll_ts.setZero();
-  // for(int s=0;s<n_s;s++){
-  //   for(int t=0;t<n_t;t++){
-
-  //     if(like_type==0){
-  //       sq_ts(t,s) = pow((E_ts(t,s) - U_ts(t,s)), 2);
-  //       if(s != find_ref) nll_ts(t,s) = Type(-1) * dnorm(sq_ts(t,s), Type(0.0), sigma, true);
-  //     }
-  //     if(like_type==1){
-  //       sq_ts(t,s) = pow((E_ts(t,s) - Eref_t(t)), 2);
-  //       if(s != find_ref) nll_ts(t,s) = sq_ts(t,s);
-  //     }
-  //     // sq_ts(t,s) = pow((E_ts(t,s) - Uref_t(t)),2);
-  //   }
-  // }
 
 
 }

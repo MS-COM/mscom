@@ -27,6 +27,36 @@ codedir <- file.path(maindir, "code","helper_functions")
 helpers <- list.files(codedir)
 ignore <- sapply(1:length(helpers), function(x) source(file.path(codedir, helpers[x])))
 
+###############################
+## Scenarios
+###############################
+
+## variability
+var_vec <- c("deterministic", "variable")
+
+## initial depletion
+depl_vec <- c("unfished", "fished")
+
+## effort dynamics
+effdyn_vec <- c("one-way", "two-way")
+
+## magnitude of maximum fishing mortality
+fmag_vec <- c("past_fmsy")#, "at_fmsy", 'below_fmsy')
+
+## length of time series
+nyears_vec <- 50
+
+## strength of effort correlation
+fdev_vec <- c(0,0.1)
+
+## scenario combinations
+scenarios <- expand.grid("PopDyn"=var_vec,
+						"DataStart"=depl_vec,
+						"EffDyn"=effdyn_vec,
+						"MaxF"=fmag_vec,
+						"Nyears"=nyears_vec,
+						"EffSD"=fdev_vec)
+
 # Simulate data
 ################################################################################
 
@@ -34,55 +64,33 @@ ignore <- sapply(1:length(helpers), function(x) source(file.path(codedir, helper
 # Tuna: Yellowfin tun (Thunnus albacares)
 # Billfish = Striped marlin (Kajikia audax)
 # Shark = Mako shark (Isurus oxyrinchus)
+itervec <- 1:10
 
-# Parameters
-species <- c("tuna", "billfish", "shark")
-oneway_mat <- data.frame("SpeciesName"=species,
-						"Fdynamics"="One-way",
-						"InitialDepl"=1,
-						"PercentFcrash"=c(0.4, 0.6, 0.8),
-						"SigmaR"=0, "rho"=0,
-						"SigmaF"=0,
-						"r" = c(0.6, 0.67, 0.11),
-						"K"=c(304, 227, 738))
+## run multiple iterations
+sim_byIter <- lapply(1:length(itervec), function(i){
+  sim <- sim_scenarios(savedir=datadir, scen_df=scenarios, fishery="pelagic_longline", seed=itervec[i], iter=itervec[i])
+  return(sim)
+})
 
-# Run simulation
-sim_oneway <- sim_pops(input_mat=oneway_mat,
-				nyears=50,
-				seed=123, 
-				model="biomass-dynamic")
+save(scenarios, file=file.path(datadir, "scenarios_pelagic_longline.Rdata"))
 
-# Plot simulation results
-p_oneway <- ggplot(sim_oneway %>% dplyr::filter(variable %in% c("RelativeCatch","ExploitRate","RelativeEffort","Depletion"))) +
+## plot example - first iteration, first scenario
+	simdf <- melt(sim_byIter[[1]][[1]], id.var=c('Species','Year'))
+	sim <- sim_byIter[[1]][[1]]
+
+	# ## plot simulation results
+	ggplot(simdf %>% dplyr::filter(variable %in% c("RelativeCatch","ExploitRate","RelativeEffort","Depletion"))) +
 	geom_line(aes(x=Year, y=value, colour=Species), lwd=2) +
 	facet_wrap(~variable, scales='free_y') +
 	theme_lsd() +
 	coord_cartesian(ylim=c(0,1.01))
-p_oneway
 
-# Extract catch
-catch_oneway <- sim_oneway %>% filter(variable=="Catch")
-input_oneway <- sapply(1:length(species), function(x){
-	sub <- catch_oneway %>% filter(Species==species[x])
-	df <- sub$value
-	return(df)
-})
-colnames(input_oneway) <- species
-
-# Format data
-true <- oneway_mat
-data <- dcast(sim_oneway, Species + Year ~ variable, value.var="value")
-
-
-# Export data
-################################################################################
-
-# Export data
-save(data, true, file=file.path(datadir, "sim_pelagic_longline.Rdata"))
-
-
-
-
+	## plot simulation results
+	ggplot(sim) +
+	geom_line(aes(x=BBmsy, y=UUmsy, colour=Species), lwd=2) +
+	theme_lsd() +
+	geom_hline(yintercept=1) +
+	geom_vline(xintercept=1)
 
 
 
