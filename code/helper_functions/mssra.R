@@ -82,7 +82,7 @@ calc_sat2_priors <- function(C_mat){
 
 # Multi-species catch-only model
 # For testing: catch<-catch; years<-yrs; stocks<-species; res<-res; id_fixed <- F
-fit_mssra <- function(catch, years, stocks, res, id_fixed){
+fit_mssra <- function(catch, years, stocks, res, id_fixed, npairs=10000){
   
   # Time series info
   nyrs <- length(years)
@@ -100,7 +100,7 @@ fit_mssra <- function(catch, years, stocks, res, id_fixed){
   s2_priors <- calc_sat2_priors(catch)
   
   # Randomly sample r-k pairs in log-space
-  npairs <- 1000
+  npairs <- npairs
   ri <- sapply(1:nstocks, function(x) exp(runif(npairs, r_priors_ln[x,1], r_priors_ln[x,2])))
   ki <- sapply(1:nstocks, function(x) exp(runif(npairs, k_priors_ln[x,1], k_priors_ln[x,2])))
   
@@ -165,7 +165,7 @@ fit_mssra <- function(catch, years, stocks, res, id_fixed){
     id_rk_viable <- id_rk_combos[viable,]
     
     # Derive B/BMSY
-    bmsy <- id_rk_viable[,"k"] * (1 / (p+1))^(1-p)
+    bmsy <- id_rk_viable[,"k"] * (1 / (p+1))^(1/p)
     bbmsy_mat_viable <- t(t(b_mat_viable) / bmsy)
     
     # # Plot viable r/k pairs
