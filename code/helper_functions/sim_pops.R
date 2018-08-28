@@ -79,11 +79,12 @@ sim_pops <- function(input_df,
 			K <- sp$K
 			p <- sp$p
 			msy <- (r*K)/((p+1)^((p+1)/p))
+			bmsy <- K * (1/(p+1))^(1/p)
 
 			## find fmsy and bmsy
 			bvec <- seq(0.01,1,by=0.01)
 			surprod <- sapply(1:length(bvec),function(x) (r/p)*(bvec[x]*K)*(1-(bvec[x])^p))
-			bmsy <- bvec[which(surprod==max(surprod))]*K
+			# bmsy <- bvec[which(surprod==max(surprod))]*K
 			umsy <- msy/bmsy
 			umax <- umsy * sp$MSYscalar
 

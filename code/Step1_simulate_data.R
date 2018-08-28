@@ -18,10 +18,10 @@ datadir <- "data/simulated"
 codedir <- "code/helper_functions"
 
 ## for windows
-maindir <- "C:\\merrill\\MS-COM\\mscom"
-tmbdir <- file.path(maindir, "code","tmb")
-datadir <- file.path(maindir, "data","simulated")
-codedir <- file.path(maindir, "code","helper_functions")
+# maindir <- "C:\\merrill\\MS-COM\\mscom"
+# tmbdir <- file.path(maindir, "code","tmb")
+# datadir <- file.path(maindir, "data","simulated")
+# codedir <- file.path(maindir, "code","helper_functions")
 
 # Read helper functions
 helpers <- list.files(codedir)
