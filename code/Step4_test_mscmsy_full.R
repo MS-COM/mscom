@@ -18,6 +18,7 @@ library(RColorBrewer)
 # Directories
 datadir <- "data/simulated"
 codedir <- "code/helper_functions"
+outdir <- "data/output"
 
 # Read helper functions
 helpers <- list.files(codedir)
@@ -33,7 +34,9 @@ load(file.path(datadir, "scenarios_pelagic_longline.Rdata"))
 # Files containing each iteration
 files <- list.files(datadir, pattern="byScenario")
 
-# Loop through files: i <- 1; j <- 1
+# Loop through files: 
+i <- 1; j <- 1
+output <- list()
 for(i in 1:length(files)){
   
   # Load file
@@ -70,17 +73,20 @@ for(i in 1:length(files)){
     true$bbmsy_ts <- dcast(sdata, Year ~ Species, value.var="BBmsy")
     
     # Fit MS-cMSY
-    out <- fit_mssra(catch=catch, years=yrs, stocks=species, res=res, id_fixed=F)
+    out <- fit_mssra(catch=catch, years=yrs, stocks=species, res=res, id_fixed=F, npairs=500)
+    output[[i]] <- out
     
     # Plot MS-cMSY
-    plot_mssra(out, true)
-    
+    # plot_mssra(out, true)
     
     
   }
   
   
 }
+
+# Export data
+save(output, file=file.path(outdir, "pelagic_longline_simtest.Rdata"))
 
 
 
