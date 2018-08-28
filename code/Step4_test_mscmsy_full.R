@@ -36,7 +36,7 @@ files <- list.files(datadir, pattern="byScenario")
 
 # Loop through files: 
 i <- 1; j <- 1
-output <- list()
+output_all <- list()
 for(i in 1:length(files)){
   
   # Load file
@@ -44,11 +44,13 @@ for(i in 1:length(files)){
   load(file.path(datadir, file_i))
   
   # Loop through scenarios
+  output_i <- list()
   nscenarios <- length(byScen)
   for(j in 1:nscenarios){
     
     # Scenario data
     sdata <- byScen[[j]]
+    print(paste(file_i, j))
     
     # Format data for MS-cMSY
     catch <- dcast(sdata, Year ~ Species, value.var="Catch")
@@ -73,8 +75,8 @@ for(i in 1:length(files)){
     true$bbmsy_ts <- dcast(sdata, Year ~ Species, value.var="BBmsy")
     
     # Fit MS-cMSY
-    out <- fit_mssra(catch=catch, years=yrs, stocks=species, res=res, id_fixed=F, npairs=500)
-    output[[i]] <- out
+    out <- fit_mssra(catch=catch, years=yrs, stocks=species, res=res, id_fixed=F, npairs=5000)
+    output_i[[j]] <- out
     
     # Plot MS-cMSY
     # plot_mssra(out, true)
@@ -82,11 +84,14 @@ for(i in 1:length(files)){
     
   }
   
+  # Combine outputs
+  output_all[[i]] <- output_i
+  
   
 }
 
 # Export data
-save(output, file=file.path(outdir, "pelagic_longline_simtest.Rdata"))
+save(output_all, file=file.path(outdir, "pelagic_longline_simtest.Rdata"))
 
 
 
