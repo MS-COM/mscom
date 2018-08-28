@@ -100,7 +100,7 @@ fit_mssra <- function(catch, years, stocks, res, id_fixed){
   s2_priors <- calc_sat2_priors(catch)
   
   # Randomly sample r-k pairs in log-space
-  npairs <- 5000
+  npairs <- 1000
   ri <- sapply(1:nstocks, function(x) exp(runif(npairs, r_priors_ln[x,1], r_priors_ln[x,2])))
   ki <- sapply(1:nstocks, function(x) exp(runif(npairs, k_priors_ln[x,1], k_priors_ln[x,2])))
   
@@ -137,19 +137,15 @@ fit_mssra <- function(catch, years, stocks, res, id_fixed){
                        lapply(ids, function(x) cbind(id=rep(x, nrow(rk_pairs)), rk_pairs))))
     
     # Loop through r/k pairs to see if viable
-    # sigmaP <- 0.1
-    # sigmaC <- 0.1
+    p <- 0.2
     b_mat <- matrix(data=NA, nrow=nyrs, ncol=nrow(id_rk_combos))
     for(j in 1:nrow(id_rk_combos)){
       id <- id_rk_combos$id[j]
       r <- id_rk_combos$r[j]
       k <- id_rk_combos$k[j]
-      b_mat[1,j] <- k * id  #* exp(rnorm(1, 0, 0.1*sigmaP))
+      b_mat[1,j] <- k * id
       for(yr in 2:nyrs){
-        # p_error <- exp(rnorm(1,0,sigmaP)) # process error
-        # obs_error <- rlnorm(1, meanlog = 0, sdlog = sqrt(log(1+(sigmaC)^2)))
-        # b_mat[yr,j] <- b_mat[yr-1,j] +  r*b_mat[yr-1,j]*(1-b_mat[yr-1,j]/k)*p_error - c_vec[yr-1]*obs_error
-        b_mat[yr,j] <- b_mat[yr-1,j] +  r*b_mat[yr-1,j]*(1-b_mat[yr-1,j]/k) - c_vec[yr-1]
+        b_mat[yr,j] <- b_mat[yr-1,j] +  r*b_mat[yr-1,j]/p*(1-(b_mat[yr-1,j]/k)^p) - c_vec[yr-1]
       }
     }
     
@@ -157,11 +153,11 @@ fit_mssra <- function(catch, years, stocks, res, id_fixed){
     s_mat <- t(t(b_mat)/ks)
     
     # Reduce to viable r/k pairs and trajectories
-    check0 <- apply(b_mat, 2, function(x) sum(x<0)==0) # check B doesn't go below 0
+    check0 <- apply(b_mat, 2, function(x) sum(x<0, na.rm=T)==0) # check B doesn't go below 0
     s2_lo <- s2_priors[i,1]
     s2_hi <- s2_priors[i,2]
     s2_vec <- s_mat[nrow(s_mat),]
-    checkS <- s2_vec > s2_lo & s2_vec < s2_hi # check final yr saturation inside prior
+    checkS <- s2_vec > s2_lo & s2_vec < s2_hi & !is.na(s2_vec) # check final yr saturation inside prior
     viable <- check0 & checkS # merge positive biomass and fina saturation checks
     id_rk_combos[,"viable"] <- viable
     nviable <- sum(viable)
@@ -169,7 +165,7 @@ fit_mssra <- function(catch, years, stocks, res, id_fixed){
     id_rk_viable <- id_rk_combos[viable,]
     
     # Derive B/BMSY
-    bmsy <- id_rk_viable[,"k"] / 2
+    bmsy <- id_rk_viable[,"k"] * (1 / (p+1))^(1-p)
     bbmsy_mat_viable <- t(t(b_mat_viable) / bmsy)
     
     # # Plot viable r/k pairs
@@ -178,15 +174,15 @@ fit_mssra <- function(catch, years, stocks, res, id_fixed){
     #      xlim=r_priors[i,], ylim=k_priors[i,], xlab="r", ylab="k", col="gray80")
     # points(rk_viable[,1], rk_viable[,2], pch=15, col="black")
     # 
-    # Plot viable biomass trajectories
+    # # Plot viable biomass trajectories
     # plot(b_mat_viable[,1] ~ yrs, type="n", bty="n", las=1,
     #      ylim=c(0, max(b_mat_viable, na.rm=T)), xlab="Year", ylab="Biomass")
     # for(k in 1:ncol(b_mat_viable)){lines(x=yrs, y=b_mat_viable[,k], col="grey80")}
     #
-    # Plot viable B/BMSY trajectories
-    plot(bbmsy_mat_viable[,1] ~ yrs, type="n", bty="n", las=1,
-         ylim=c(0, max(bbmsy_mat_viable, na.rm=T)), xlab="Year", ylab="B/BMSY")
-    for(k in 1:ncol(bbmsy_mat_viable)){lines(x=yrs, y=bbmsy_mat_viable[,k], col="grey80")}
+    # # Plot viable B/BMSY trajectories
+    # plot(bbmsy_mat_viable[,1] ~ yrs, type="n", bty="n", las=1,
+    #      ylim=c(0, max(bbmsy_mat_viable, na.rm=T)), xlab="Year", ylab="B/BMSY")
+    # for(k in 1:ncol(bbmsy_mat_viable)){lines(x=yrs, y=bbmsy_mat_viable[,k], col="grey80")}
     
     # Calculate exploitation rate
     # I name the rows and columns so that I can validate covariance matrix below
