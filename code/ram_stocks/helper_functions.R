@@ -24,14 +24,18 @@ fishlife <- function(species){
     species <- word(sciname, start=2, end=nwords_in_spp)
     species <- ifelse(species=="spp", "predictive", species)
     
-    # Get and plot life history info
-    spp_info <- Plot_taxa(Search_species(Genus=genus, Species=species)$match_taxonomy)
-    
-    # Values are in log-scale except temperature
-    spp_lh_vals_log <- spp_info[[1]]$Mean_pred
-    spp_lh_vals <- c(exp(spp_lh_vals_log[1:7]), spp_lh_vals_log[8])
-    fl[i,2:ncol(fl)] <- spp_lh_vals
-
+    # Try looking up in FishLife
+    spp_info <- try(Plot_taxa(Search_species(Genus=genus, Species=species)$match_taxonomy))
+    if(inherits(spp_info, "try-error")){
+      # Record blanks
+      fl[i,2:ncol(fl)] <- rep(NA, ncol(fl)-1)
+    }else{
+      # Values are in log-scale except temperature
+      spp_lh_vals_log <- spp_info[[1]]$Mean_pred
+      spp_lh_vals <- c(exp(spp_lh_vals_log[1:7]), spp_lh_vals_log[8])
+      fl[i,2:ncol(fl)] <- spp_lh_vals
+    }
+  
   }
   
   # Return
@@ -147,13 +151,25 @@ resilience <- function(species){
 
 
 
-# Get invertebrate life history info
-options(FISHBASE_API = "https://fishbase.ropensci.org/sealifebase")
-inverts <- spp_lh_key$sci_name_fb[spp_lh_key$type=="invertebrate"]
-inverts_gen <- spp_lh_key$genus[spp_lh_key$type=="invertebrate"]
-inverts_get <- subset(taxa_key, genus %in% inverts_gen)$sciname
-species_inv <- species(inverts_get)
-popgrowth_inv <- popgrowth(inverts_get)
-stocks_inv <- stocks(inverts_get)
+# Check scientific names
+################################################################################
 
 
+# Check scientific names against FishBase
+check_species <- function(species){
+  
+  # Build FB/SLB taxa key
+  taxa_key_fb <- load_taxa(server="https://fishbase.ropensci.org") %>% mutate(type="fish") %>% select(type, everything())
+  taxa_key_slb <- sealifebase %>% mutate(type="invert") %>% select(type, everything())
+  taxa_key <-  taxa_key_fb %>%
+    bind_rows(taxa_key_slb) %>% 
+    setNames(tolower(names(.))) %>% 
+    mutate(sciname=paste(genus, species)) %>% 
+    select(type, class, order, family, genus, species, sciname) %>% 
+    unique()
+  
+  # Check that species are in FB/SLB
+  spp_wrong <- species[!species %in% taxa_key$sciname]
+  return(spp_wrong)
+  
+}

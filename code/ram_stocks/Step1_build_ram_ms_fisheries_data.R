@@ -15,59 +15,23 @@ library(reshape2)
 outdir <- "code/ram_stocks/data"
 codedir <- "code/ram_stocks"
 
+# Read RAM multispecies fisheries
+ms_key <- read.csv(file.path(outdir, "RAM_MS_fisheries.csv"), as.is=T)
+
 # Read RAM Legacy Database
-load("/Users/cfree/Dropbox/Prelim Database Files/Versions/RAM v4.40 (6-4-18)/DB Files With Assessment Data/DBdata.RData")
+load("/Users/cfree/Dropbox/Prelim Database Files/Versions/RAM v4.41 (8-20-18)/DB Files With Assessment Data/DBdata (assessment data only).Rdata")
 
 # Read helper functions
 source(file.path(codedir, "helper_functions.R"))
 
-# Identify stocks
-################################################################################
-
-# Look for multi-species fisheries
-stocks_sub <- filter(stock, region=="US East Coast")
-
-# Australia / New Zealand
-##################################
-
-# NZ Chatham Rise middle-depth
-nzcr_stocks <- c("HOKIENZ", "SOUTHHAKECR", "NZLINGLIN3-4")
-
-# SE Australia Scalefish/Sharks
-# Blue grenadier (Macruronus novaezelandiae), Tiger flathead (Neoplatycephalus richardsoni)
-# Silver warehou (Seriolella punctata), Gummy shark (Mustelus antarcticus), Pink ling (Genypterus blacodes)
-sessf_stocks <- c("BGRDRSE", "NZLINGESE", "TIGERFLATSE", "SILVERFISHSE")
-
-# United States
-##################################
-
-# Mid-Atlantic mackerel, squid, butterfish
-msb_stocks <- c("BUTTERGOMCHATT", "ILLEXNWATLC")
-
-# West Coast DTS fishery
-dts_stocks <- c("DSOLEPCOAST", "SSTHORNHPCOAST", "LSTHORNHPCOAST", "SABLEFPCOAST")
-
-# BSAI groundfish 
-bsai_stocks <- c("YSOLEBSAI", "PCODBSAI", "WPOLLAI", "WPOLLEBS")
-
-# NE groundfish
-# NAFO 5Z = Georges Bank
-# NAFO 5Y = Gulf of Maine (GOM)
-gb_gf_stocks <- c("CODGB", "HADGB", "WINFLOUN5Z", "YELLGB")
-gom_gf_stocks <- c("CODGOM", "HAD5Y", "WINFLOUND5Y", "WITFLOUN5Y", "YELLCCODGOM")
-gbgom_gf_stocks <- c("AMPL5YZ", "ACADREDGOMGB", "POLL5YZ", "WHAKEGBGOM")
-
-# Merge all
-##################################
-
-# All multi-species stocks
-ms_stockids <- c(nzcr_stocks, sessf_stocks,
-                 dts_stocks, bsai_stocks,
-                 gb_gf_stocks, gom_gf_stocks, gbgom_gf_stocks)
 
 
 # Build data
 ################################################################################
+
+# Are all of the stockids in RAM?
+ms_stockids <- ms_key$stockid
+ms_stockids[!ms_stockids %in% stock$stockid]
 
 # Build stock key
 ms_stocks <- stock %>% 
@@ -79,22 +43,23 @@ ms_stocks <- stock %>%
   # Filter to multi-species stocks
   filter(stockid %in% ms_stockids) %>% 
   # Correct some species names
-  mutate(species=revalue(species, c("Neoplatycephalus richardsoni"="Platycephalus richardsoni")),
-         comm_name=revalue(comm_name, c("American Plaice"="American plaice",
+  mutate(species=revalue(species, c("Neoplatycephalus richardsoni"="Platycephalus richardsoni",
+                                    "Tetrapturus albidus"="Kajikia albida")),
+         comm_name=revalue(comm_name, c("albacore tuna"="Albacore tuna",
+                                        "American Plaice"="American plaice",
+                                        "bigeye tuna"="Bigeye tuna",
                                         "blue grenadier"="Blue grenadier",
+                                        "blue marlin"="Blue marlin",
+                                        "pacific bluefin tuna"="Pacific bluefin tuna",
                                         "Silverfish"="Silver warehou",
+                                        "skipjack tuna"="Skipjack tuna",
+                                        "striped marlin"="Striped marlin",
+                                        "swordfish"="Swordfish",
+                                        "white marlin"="White marlin",
                                         "Winter Flounder"="Winter flounder",
                                         "Witch Flounder"="Witch flounder"))) %>% 
   # Add fishery name
-  mutate(fishery=NA,
-         fishery=ifelse(stockid %in% nzcr_stocks, "NZ Chatham Rise", fishery),
-         fishery=ifelse(stockid %in% sessf_stocks, "Australia SESSF", fishery),
-         fishery=ifelse(stockid %in% msb_stocks, "US Mid-Atlantic MSB", fishery),
-         fishery=ifelse(stockid %in% dts_stocks, "US West Coast DTS", fishery),
-         fishery=ifelse(stockid %in% bsai_stocks, "US BSAI groundfish", fishery),
-         fishery=ifelse(stockid %in% gb_gf_stocks, "US GB groundfish", fishery),
-         fishery=ifelse(stockid %in% gom_gf_stocks, "US GOM groundfish", fishery),
-         fishery=ifelse(stockid %in% gbgom_gf_stocks, "US GB/GOM groundfish", fishery)) %>% 
+  left_join(select(ms_key, c(stockid, fishery)), by="stockid") %>% 
   # Add catch/biomass units
   left_join(select(timeseries_ids_views, stockid, TCbest, TBbest), by="stockid") %>% 
   rename(tc_units=TCbest, tb_units=TBbest) %>% 
@@ -103,7 +68,21 @@ ms_stocks <- stock %>%
   rename(msy=MSY, bmsy=TBmsybest, fmsy=Fmsy) %>% 
   left_join(select(bioparams_ids_views, stockid, MSY, TBmsybest, Fmsy), by="stockid") %>% 
   rename(msy_units=MSY, bmsy_units=TBmsybest, fmsy_units=Fmsy) %>% 
-  select(fishery, everything())
+  # Rearrange 
+  select(fishery, everything()) %>% 
+  arrange(fishery, stockid)
+
+# Inspect data
+sort(unique(ms_stocks$comm_name))
+check_species(ms_stocks$species)
+
+# Remove fisheries with fewer than 2 constituent stocks
+nstocks <- ms_stocks %>%
+  group_by(fishery) %>% 
+  summarize(n=n()) %>% 
+  arrange(desc(n)) %>% 
+  filter(n>=2)
+ms_stocks <- filter(ms_stocks, fishery %in% nstocks$fishery)
 
 # Build stock data
 colnames(timeseries_values_views)

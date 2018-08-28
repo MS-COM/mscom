@@ -1,0 +1,71 @@
+group,fishery,stockid
+Oceana groundfish,NZ Chatham Rise middle-depth,HOKIENZ
+Oceana groundfish,NZ Chatham Rise middle-depth,NZLINGLIN3-4
+Oceana groundfish,NZ Chatham Rise middle-depth,SOUTHHAKECR
+Oceana groundfish,Australia SE scalefish/sharks,BGRDRSE
+Oceana groundfish,Australia SE scalefish/sharks,NZLINGESE
+Oceana groundfish,Australia SE scalefish/sharks,SILVERFISHSE
+Oceana groundfish,Australia SE scalefish/sharks,TIGERFLATSE
+Tunas,IATTC East Pacific tunas,BIGEYEEPAC
+Tunas,IATTC East Pacific tunas,SKJEPAC
+Tunas,IATTC East Pacific tunas,STMARLINNEPAC
+Tunas,IATTC East Pacific tunas,SWORDEPAC
+Tunas,IATTC East Pacific tunas,YFINEPAC
+Tunas,ICCAT Atlantic tunas,SAILEATL
+Tunas,ICCAT Atlantic tunas,YFINATL
+Tunas,ICCAT East Atlantic tunas,ATBTUNAEATL
+Tunas,ICCAT East Atlantic tunas,BIGEYEATL
+Tunas,ICCAT East Atlantic tunas,BMARLINATL
+Tunas,ICCAT East Atlantic tunas,SKJEATL
+Tunas,ICCAT East Atlantic tunas,SWORDNATL
+Tunas,ICCAT East Atlantic tunas,WMARLINATL
+Tunas,ICCAT Mediterranean tunas,ALBAMED
+Tunas,ICCAT Mediterranean tunas,SWORDMED
+Tunas,ICCAT North Atlantic tunas,ALBANATL
+Tunas,ICCAT South Atlantic tunas,ALBASATL
+Tunas,ICCAT South Atlantic tunas,SWORDSATL
+Tunas,ICCAT West Atlantic tunas,ATBTUNAWATL
+Tunas,ICCAT West Atlantic tunas,SAILWATL
+Tunas,ICCAT West Atlantic tunas,SKJWATL
+Tunas,IOTC Indian Ocean tunas,ALBAIO
+Tunas,IOTC Indian Ocean tunas,BIGEYEIO
+Tunas,IOTC Indian Ocean tunas,BLKMARLINIO
+Tunas,IOTC Indian Ocean tunas,BMARLINIO
+Tunas,IOTC Indian Ocean tunas,SKJCIO
+Tunas,IOTC Indian Ocean tunas,STMARLINIO
+Tunas,IOTC Indian Ocean tunas,SWORDIO
+Tunas,IOTC Indian Ocean tunas,YFINEIO
+Tunas,ISC North Pacific tunas,ALBANPAC
+Tunas,ISC North Pacific tunas,BLSHARNPAC
+Tunas,ISC North Pacific tunas,BMARLINPAC
+Tunas,ISC North Pacific tunas,SWORDNPAC
+Tunas,ISC Pacific tunas,PACBTUNA
+Tunas,ISC West Pacific tunas,STMARLINWCNPAC
+Tunas,SPC South Pacific tunas,ALBASPAC
+Tunas,SPC West Pacific tunas,BIGEYECWPAC
+Tunas,SPC West Pacific tunas,SKJCWPAC
+Tunas,SPC West Pacific tunas,STMARLINSWPO
+Tunas,SPC West Pacific tunas,YFINCWPAC
+US groundfish,USA BSAI groundfish,PCODBSAI
+US groundfish,USA BSAI groundfish,WPOLLAI
+US groundfish,USA BSAI groundfish,WPOLLEBS
+US groundfish,USA BSAI groundfish,YSOLEBSAI
+US groundfish,USA GB groundfish,CODGB
+US groundfish,USA GB groundfish,HADGB
+US groundfish,USA GB groundfish,WINFLOUN5Z
+US groundfish,USA GB groundfish,YELLGB
+US groundfish,USA GB/GOM groundfish,ACADREDGOMGB
+US groundfish,USA GB/GOM groundfish,AMPL5YZ
+US groundfish,USA GB/GOM groundfish,POLL5YZ
+US groundfish,USA GB/GOM groundfish,WHAKEGBGOM
+US groundfish,USA GOM groundfish,CODGOM
+US groundfish,USA GOM groundfish,HAD5Y
+US groundfish,USA GOM groundfish,WINFLOUND5Y
+US groundfish,USA GOM groundfish,WITFLOUN5Y
+US groundfish,USA GOM groundfish,YELLCCODGOM
+US coastal-pelagics,USA Mid-Atlantic MSB,BUTTERGOMCHATT
+US coastal-pelagics,USA Mid-Atlantic MSB,ILLEXNWATLC
+US groundfish,USA West Coast DTS,DSOLEPCOAST
+US groundfish,USA West Coast DTS,LSTHORNHPCOAST
+US groundfish,USA West Coast DTS,SABLEFPCOAST
+US groundfish,USA West Coast DTS,SSTHORNHPCOAST
