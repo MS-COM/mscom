@@ -19,24 +19,6 @@ calc_r_priors <- function(res){
   return(r_priors)
 }
 
-# Calculate k prior
-# calc_k_priors <- function(C_mat, r_priors){
-#   for(i in 1:ncol(C_mat)){
-#     catch <- C_mat[,i]
-#     r_prior <- r_priors[i,]
-#     r_lo <- r_prior[1]
-#     r_hi <- r_prior[2]
-#     c_max <- max(catch)
-#     k_lo <- c_max / r_hi
-#     k_hi <- 12 * c_max / r_lo
-#     k_prior <- c(k_lo, k_hi)
-#     if(i==1){k_priors <- k_prior}else{k_priors <- rbind(k_priors, k_prior)}
-#   }
-#   colnames(k_priors) <- c("k_lo", "k_hi")
-#   rownames(k_priors) <- NULL
-#   return(k_priors)
-# }
-
 # Calculate k priors
 calc_k_priors <- function(C_mat){
   cmax <- apply(C_mat, 2, max)
@@ -45,7 +27,6 @@ calc_k_priors <- function(C_mat){
   k_priors <- cbind(k_lo=k_lo, k_hi=k_hi)
   return(k_priors)
 }
-
 
 # Calculate initial year depletion prior
 calc_sat1_priors <- function(C_mat){
@@ -66,7 +47,7 @@ calc_sat2_priors <- function(C_mat){
   c_ends <- C_mat[nrow(C_mat),]
   c_maxs <- apply(C_mat, 2, max)
   c_ratios <- c_ends / c_maxs
-  b_catgs <- cut(c_ratios, breaks=c(0,0.05, 0.15, 0.35, 0.5, 0.8, 1), 
+  b_catgs <- cut(c_ratios, breaks=c(0,0.05, 0.15, 0.35, 0.5, 0.8, 1),
                  labels=c("very very very low", "very very low", "very low", "low", "medium", "high"))
   s_prior_key <- matrix(data=c(0.01, 0.1, # very very very low
                                 0.01, 0.2, # very very low
@@ -79,10 +60,24 @@ calc_sat2_priors <- function(C_mat){
   return(s2_priors)
 }
 
+# Calculate final year depletion based on rORCS: status <- c("over", "under", "fully")
+# Over: BBMSY=0.0-0.6 saturation=0-0.3
+# Fully: BBMSY=0.4-1.6 saturation=0.2-0.8
+# Under: BBMSY=>1.2
+# calc_sat2_priors <- function(status){
+#   status_f <- factor(status, levels=c("over", "fully", "under"))
+#   s_prior_key <- matrix(data=c(0.01,0.3, # over exploited
+#                                0.2, 0.8, # fully exploited
+#                                0.6, 0.9), # under exploited
+#                         ncol=2, byrow=T, dimnames=list(NULL, c("s_lo", "s_hi")))
+#   s2_priors <- s_prior_key[status_f,]
+#   return(s2_priors)
+# }
+
 
 # Multi-species catch-only model
 # For testing: catch<-catch; years<-yrs; stocks<-species; res<-res; id_fixed <- F; npairs <- 1000
-fit_mssra <- function(catch, years, stocks, res, id_fixed, npairs=10000){
+fit_mssra <- function(catch, years, stocks, res, id_fixed, npairs=10000, status){
   
   # Time series info
   nyrs <- length(years)
@@ -98,6 +93,7 @@ fit_mssra <- function(catch, years, stocks, res, id_fixed, npairs=10000){
   # Calculate saturation priors
   s1_priors <- calc_sat1_priors(catch)
   s2_priors <- calc_sat2_priors(catch)
+  # s2_priors <- calc_sat2_priors(status)
   
   # Randomly sample r-k pairs in log-space
   npairs <- npairs
@@ -117,7 +113,7 @@ fit_mssra <- function(catch, years, stocks, res, id_fixed, npairs=10000){
     # Get info
     stock <- stocks[i]
     c_vec <- catch[,i]
-    print(stock)
+    # print(stock)
     
     # Initial depletions to evaluate
     if(id_fixed==T){
@@ -183,7 +179,7 @@ fit_mssra <- function(catch, years, stocks, res, id_fixed, npairs=10000){
     # plot(bbmsy_mat_viable[,1] ~ yrs, type="n", bty="n", las=1,
     #      ylim=c(0, max(bbmsy_mat_viable, na.rm=T)), xlab="Year", ylab="B/BMSY")
     # for(k in 1:ncol(bbmsy_mat_viable)){lines(x=yrs, y=bbmsy_mat_viable[,k], col="grey80")}
-    
+
     # Calculate exploitation rate
     # I name the rows and columns so that I can validate covariance matrix below
     er_mat_viable <- c_vec / b_mat_viable
@@ -235,7 +231,6 @@ fit_mssra <- function(catch, years, stocks, res, id_fixed, npairs=10000){
   # abline(v=finishes, lwd=1.5)
   # abline(h=ncol(corr_mat2)-finishes, lwd=1.5)
   
-  
   # Setup containter to hold highest correlation coefficients per row
   # Columns: row, index1, index2, index3, corr12, corr13, corr23, corr_sum
   spp <- 1:nstocks # each species gets a number
@@ -269,37 +264,43 @@ fit_mssra <- function(catch, years, stocks, res, id_fixed, npairs=10000){
     
   }
   
-  # Sum correlations
+  # Average correlations
   corr_cols <- colnames(hi_corr_mat)[grepl("corr", colnames(hi_corr_mat))]
-  corr_sums <- apply(hi_corr_mat[,corr_cols ], 1, sum, na.rm=T) 
-  hi_corr_mat <- cbind(hi_corr_mat, corr_sum=corr_sums)
+  corr_avgs <- apply(hi_corr_mat[,corr_cols ], 1, mean, na.rm=T) 
+  hi_corr_mat <- cbind(hi_corr_mat, corr_avg=corr_avgs)
   
   # Mark viable r/k pairs that show high correlation
-  n_each_index <- melt(hi_corr_mat[,paste0("index", 1:nstocks)], 
-                       variable.name="stock", value.name="index") %>% 
-    select(-Var1) %>% 
-    rename(stock=Var2) %>% 
-    mutate(stock=gsub("index", "", stock)) %>% 
-    group_by(stock, index) %>% 
-    summarize(ncorr=n()) %>% 
-    ungroup()
+  # n_each_index <- melt(hi_corr_mat[,paste0("index", 1:nstocks)], 
+  #                      variable.name="stock", value.name="index") %>% 
+  #   select(-Var1) %>% 
+  #   rename(stock=Var2) %>% 
+  #   mutate(stock=gsub("index", "", stock)) %>% 
+  #   group_by(stock, index) %>% 
+  #   summarize(ncorr=n()) %>% 
+  #   ungroup()
 
   # Add correlation counts to viable r/k pair table
   for(i in 1:length(id_rk_v)){
     id_rk_v_do <- as.data.frame(id_rk_v[[i]])
-    id_rk_v_do1 <- id_rk_v_do %>% 
-      mutate(index=1:nrow(id_rk_v_do)) %>% 
-      left_join(select(filter(n_each_index, stock==i), index, ncorr), by="index") %>% 
-      select(index, id, r, k, ncorr)
+    id_rk_v_do1 <- id_rk_v_do %>%
+      mutate(index=1:nrow(id_rk_v_do)) %>%
+      select(index, id, r, k)
     id_rk_v[[i]] <- id_rk_v_do1
   }
   
   # Identify top 10% most highly correlated effort time series
-  top_p <- 0.10
+  top_p <- 0.05
   top_n <- ceiling(nrow(hi_corr_mat) * top_p)
-  top_corr <- as.data.frame(hi_corr_mat) %>% 
-    arrange(desc(corr_sum)) %>% 
+  top_corr <- as.data.frame(hi_corr_mat) %>%
+    arrange(desc(corr_avg)) %>%
     slice(1:top_n)
+  
+  # Identify combos producing > 0.4 mean correlation
+  # corr_thresh <- 0.8
+  # top_corr <- as.data.frame(hi_corr_mat) %>% 
+  #   arrange(desc(corr_avg)) %>% 
+  #   filter(corr_avg>=corr_thresh)
+  # if(nrow(top_corr)==0){print("No highly correlated effort time series found.")}
   
   # Get biomass trajectories of top 10%
   # (also sneak in calculation of cMSY prediction)
@@ -316,7 +317,6 @@ fit_mssra <- function(catch, years, stocks, res, id_fixed, npairs=10000){
     bbmsy_v_meds[[i]] <- bbmsy_v_med
     bbmsy_vv_meds[[i]] <- bbmsy_vv_med
   }
-  
 
   # Things to return
   out <- list(stocks=stocks,
@@ -354,10 +354,10 @@ plot_mssra <- function(out, true){
     ids <- out$id_try
     rs <- out$r_try[,i]
     ks <- out$k_try[,i]
-    id_rk_viable <- out$id_rk_viable[[i]]
-    b_viable <- out$b_viable[[i]]
-    bbmsy_viable <- out$bbmsy_viable[[i]]
-    er_viable <- out$er_viable[[i]]
+    id_rk_viable <- out$id_rk_v[[i]]
+    b_viable <- out$b_v[[i]]
+    bbmsy_viable <- out$bbmsy_v[[i]]
+    er_viable <- out$er_v[[i]]
     s1_priors <- out$s1_priors
     s2_priors <-out$s2_priors
     r_priors <- out$r_priors
@@ -406,8 +406,9 @@ plot_mssra <- function(out, true){
     #########################################
     
     # Plot BBMSY trajectories
+    ymax <- freeR::ceiling1(max(bbmsy_viable, true$bbmsy_ts[,i+1], na.rm=T), 0.5)
     plot(bbmsy_viable[,1] ~ yrs, type="n", bty="n", las=1,
-         ylim=c(0, 2), xlab="Year", ylab=expression("B/B"["MSY"]))
+         ylim=c(0, ymax), xlab="Year", ylab=expression("B/B"["MSY"]))
     for(k in 1:ncol(bbmsy_viable)){lines(x=yrs, y=bbmsy_viable[,k], col="grey70")}
     for(k in 1:ncol(bbmsy_vv)){lines(x=yrs, y=bbmsy_vv[,k], col=freeR::tcolor("darkorange", 0.6))}
     lines(x=yrs, y=bbmsy_vv_median, lwd=1.5, col="black")

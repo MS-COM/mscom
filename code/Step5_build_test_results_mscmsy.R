@@ -56,6 +56,12 @@ for(i in 1:length(files)){
       select(Species, BBmsy) %>% 
       rename(stock=Species, true=BBmsy)
     
+    # cMSY status
+    cmsy <- sapply(preds_i[[j]]$bbmsy_v_median, cbind)
+    colnames(cmsy) <- preds_i[[j]]$stocks
+    cmsy_end <- cmsy[nrow(cmsy),]
+    cmsy_end <- data.frame(stock=colnames(cmsy), cmsy=cmsy_end)
+    
     # MS-cMSY status
     mscmsy <- sapply(preds_i[[j]]$bbmsy_vv_median, cbind)
     colnames(mscmsy) <- preds_i[[j]]$stocks
@@ -64,6 +70,7 @@ for(i in 1:length(files)){
     
     # Add scenario meta-data
     sdata <- true %>%
+      left_join(cmsy_end, by="stock") %>% 
       left_join(mscmsy_end, by="stock")
     sdata1 <- cbind(scenarios[j,], sdata) # Raises WARNINGS that don't matter
     
@@ -82,8 +89,17 @@ for(i in 1:length(files)){
   
 }
 
-# Format
+# Format data
 data <- data %>% 
-  arrange(dyn, id, ed, maxf, effsd, iter)
+  arrange(dyn, id, ed, maxf, effsd, iter) %>% 
+  mutate(cmsy_diff=(cmsy-true)/true*100,
+         mscmsy_diff=(mscmsy-true)/true*100)
+
+# Visualize performance
+boxplot(data[,c("cmsy_diff", "mscmsy_diff")], frame=F, las=1, lty=1,
+        names=c("cMSY", "MS-cMSY"), ylab="Percent error in estimate")
+lines(x=c(0.5,3.5), y=c(0,0), lty=2, col="red")
+
+
 
 

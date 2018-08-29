@@ -68,7 +68,7 @@ for(i in 1:length(files)){
     true$bbmsy_ts <- dcast(sdata, Year ~ Species, value.var="BBmsy")
     
     # Fit MS-cMSY
-    out <- fit_mssra(catch=catch, years=yrs, stocks=species, res=res, id_fixed=F, npairs=5000)
+    out <- fit_mssra(catch=catch, years=yrs, stocks=species, res=res, id_fixed=F, npairs=1000)
     output_i[[j]] <- out
     
     # Plot MS-cMSY
