@@ -81,7 +81,7 @@ calc_sat2_priors <- function(C_mat){
 
 
 # Multi-species catch-only model
-# For testing: catch<-catch; years<-yrs; stocks<-species; res<-res; id_fixed <- F
+# For testing: catch<-catch; years<-yrs; stocks<-species; res<-res; id_fixed <- F; npairs <- 1000
 fit_mssra <- function(catch, years, stocks, res, id_fixed, npairs=10000){
   
   # Time series info
@@ -302,16 +302,21 @@ fit_mssra <- function(catch, years, stocks, res, id_fixed, npairs=10000){
     slice(1:top_n)
   
   # Get biomass trajectories of top 10%
+  # (also sneak in calculation of cMSY prediction)
+  bbmsy_v_meds <- NULL
   bbmsy_mats_vv <- NULL
   bbmsy_vv_meds <- NULL
   for(i in 1:length(b_mats_v)){
     bbmsy_mat_v <- bbmsy_mats_v[[i]]
     vv_index <- unlist(top_corr[,paste0("index", i)])
     bbmsy_mat_vv <- bbmsy_mat_v[,vv_index]
+    bbmsy_v_med <- apply(bbmsy_mat_v, 1, median)
     bbmsy_vv_med <- apply(bbmsy_mat_vv, 1, median)
     bbmsy_mats_vv[[i]] <- bbmsy_mat_vv
+    bbmsy_v_meds[[i]] <- bbmsy_v_med
     bbmsy_vv_meds[[i]] <- bbmsy_vv_med
   }
+  
 
   # Things to return
   out <- list(stocks=stocks,
@@ -323,10 +328,11 @@ fit_mssra <- function(catch, years, stocks, res, id_fixed, npairs=10000){
               id_try=ids,
               r_try=ri, 
               k_try=ki, 
-              id_rk_viable=id_rk_v, 
-              b_viable=b_mats_v, 
-              bbmsy_viable=bbmsy_mats_v,
-              er_viable=er_mats_v,
+              id_rk_v=id_rk_v, 
+              b_v=b_mats_v, 
+              bbmsy_v=bbmsy_mats_v,
+              bbmsy_v_median=bbmsy_v_meds,
+              er_v=er_mats_v,
               top_corr=top_corr,
               bbmsy_vv=bbmsy_mats_vv,
               bbmsy_vv_median=bbmsy_vv_meds)

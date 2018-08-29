@@ -36,7 +36,7 @@ files <- list.files(datadir, pattern="byScenario")
 
 # Loop through files: 
 i <- 1; j <- 1
-output_all <- list()
+output_all <- NULL
 for(i in 1:length(files)){
   
   # Load file
@@ -44,7 +44,7 @@ for(i in 1:length(files)){
   load(file.path(datadir, file_i))
   
   # Loop through scenarios
-  output_i <- list()
+  output_i <- NULL
   nscenarios <- length(byScen)
   for(j in 1:nscenarios){
     
@@ -59,14 +59,7 @@ for(i in 1:length(files)){
     species <- colnames(catch)
     res <- c("Medium", "Low", "Medium")
     
-    # billfish, shark, tuna
-    species <- colnames(catch)
-    r_true <- c(0.67, 0.11, 0.60)
-    k_true <- c(227, 738, 304)
-    res <- c("Medium", "Low", "Medium")
-    yrs <- 1:nrow(catch)
-    
-    # True
+    # True values
     true <- NULL
     true$r <- arrange(unique(sdata[,c("Species", "r")]), Species)$r
     true$k <- arrange(unique(sdata[,c("Species", "K")]), Species)$K
