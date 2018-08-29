@@ -134,6 +134,7 @@ fit_mssra <- function(catch, years, stocks, res, id_fixed, npairs=10000, status)
     
     # Loop through r/k pairs to see if viable
     p <- 0.2
+    sigmaP <- 0.1
     b_mat <- matrix(data=NA, nrow=nyrs, ncol=nrow(id_rk_combos))
     for(j in 1:nrow(id_rk_combos)){
       id <- id_rk_combos$id[j]
@@ -141,7 +142,7 @@ fit_mssra <- function(catch, years, stocks, res, id_fixed, npairs=10000, status)
       k <- id_rk_combos$k[j]
       b_mat[1,j] <- k * id
       for(yr in 2:nyrs){
-        b_mat[yr,j] <- b_mat[yr-1,j] +  r*b_mat[yr-1,j]/p*(1-(b_mat[yr-1,j]/k)^p) - c_vec[yr-1]
+        b_mat[yr,j] <- b_mat[yr-1,j] +  r*b_mat[yr-1,j]/p*(1-(b_mat[yr-1,j]/k)^p)*exp(rnorm(1,0,sigmaP)) - c_vec[yr-1]
       }
     }
     

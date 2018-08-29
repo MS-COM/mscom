@@ -57,7 +57,7 @@ bbmsy_end_true <- as.numeric(true$bbmsy_ts[nrow(true$bbmsy_ts),2:ncol(true$bbmsy
 status_end_true <- as.character(cut(bbmsy_end_true, breaks=c(0,0.5,1.5,999), labels=c("over", "fully", "under")))
 
 # Fit MS-cMSY
-out <- fit_mssra(catch=catch, years=yrs, stocks=species, res=res, id_fixed=T, npairs=10000)
+out <- fit_mssra(catch=catch, years=yrs, stocks=species, res=res, id_fixed=T, npairs=20000)
 
 # Plot MS-cMSY
 plot_mssra(out, true)
