@@ -44,8 +44,9 @@ sim_pops <- function(input_df,
 	## Process error
 	ProcDev <- lapply(1:nspecies, function(x){
 		sp <- input_df %>% dplyr::filter(species==species[x])
-		raw <- with(sp, rnorm(Tyears[[x]], mean= -(SigmaR ^ 2)/2, sd=SigmaR))
-
+		# raw <- with(sp, rnorm(Tyears[[x]], mean= -(SigmaR ^ 2)/2, sd=SigmaR)) # Merrill's version
+		raw <- with(sp, rnorm(Tyears[[x]], mean=0, sd=SigmaR)) # Chris' version
+		
 		out <- rep(NA, Tyears[[x]])
 		out[1] <- raw[1]
 		for(t in 2:length(raw)){
@@ -114,7 +115,8 @@ sim_pops <- function(input_df,
 			for(t in 2:Tyears[[x]]){
 				ct[t] <- ut[t-1] * bt[t-1]
 				pt[t] <- (r/p)*bt[t-1]*(1-(bt[t-1]/K)^p)
-				bt[t] <- (bt[t-1] + pt[t] - ct[t-1]) * exp(ProcDev[[x]][t])
+				# bt[t] <- (bt[t-1] + pt[t] - ct[t-1]) * exp(ProcDev[[x]][t]) # Merrill's version
+				bt[t] <- bt[t-1] + pt[t] * exp(ProcDev[[x]][t]) - ct[t-1] # Chris' version
 			}
 
 			## cut time series to start in fished condition

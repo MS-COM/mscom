@@ -32,8 +32,12 @@ load(file.path(datadir, "sim1_pelagic_longline_byScenario.Rdata"))
 # Reorder scenarios
 scenarios1 <- scenarios %>% 
   mutate(num=1:n()) %>% 
-  arrange(EffDyn, PopDyn)
+  arrange(EffDyn, PopDyn) 
 byScen1 <- byScen[scenarios1$num]
+
+# For title
+scenarios2 <- scenarios1 %>% 
+  select(-c(Nyears, num))
 
 # Setup figure
 figname <- "AppendixC_simulation_plots.pdf"
@@ -57,6 +61,8 @@ for(i in 1:nrow(scenarios1)){
     sdata1 <- filter(sdata, Species==species[j])
     lines(sdata1$Year, sdata1$Catch, col=colors[j])
   }
+  title_text <- paste(sapply(scenarios2[i,], as.character), collapse = ", ")
+  title(title_text, adj=0, xpd=NA)
   
   # Plot B/BMSY
   ymax <- freeR::ceiling1(max(sdata$BBmsy), 0.5)
