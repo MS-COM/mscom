@@ -142,6 +142,7 @@ fit_mssra <- function(catch, years, stocks, res, id_fixed, npairs=10000, status)
       k <- id_rk_combos$k[j]
       b_mat[1,j] <- k * id
       for(yr in 2:nyrs){
+        # b_mat[yr,j] <- b_mat[yr-1,j] +  r*b_mat[yr-1,j]/p*(1-(b_mat[yr-1,j]/k)^p) - c_vec[yr-1]
         b_mat[yr,j] <- b_mat[yr-1,j] +  r*b_mat[yr-1,j]/p*(1-(b_mat[yr-1,j]/k)^p)*exp(rnorm(1,0,sigmaP)) - c_vec[yr-1]
       }
     }
@@ -290,7 +291,7 @@ fit_mssra <- function(catch, years, stocks, res, id_fixed, npairs=10000, status)
   }
   
   # Identify top 10% most highly correlated effort time series
-  top_p <- 0.05
+  top_p <- 0.10
   top_n <- ceiling(nrow(hi_corr_mat) * top_p)
   top_corr <- as.data.frame(hi_corr_mat) %>%
     arrange(desc(corr_avg)) %>%
@@ -306,15 +307,19 @@ fit_mssra <- function(catch, years, stocks, res, id_fixed, npairs=10000, status)
   # Get biomass trajectories of top 10%
   # (also sneak in calculation of cMSY prediction)
   bbmsy_v_meds <- NULL
+  er_mats_vv <- NULL
   bbmsy_mats_vv <- NULL
   bbmsy_vv_meds <- NULL
   for(i in 1:length(b_mats_v)){
-    bbmsy_mat_v <- bbmsy_mats_v[[i]]
     vv_index <- unlist(top_corr[,paste0("index", i)])
+    er_mat_v <- er_mats_v[[i]]
+    er_mat_vv <- er_mat_v[,vv_index]
+    er_mats_vv[[i]] <- er_mat_vv
+    bbmsy_mat_v <- bbmsy_mats_v[[i]]
     bbmsy_mat_vv <- bbmsy_mat_v[,vv_index]
+    bbmsy_mats_vv[[i]] <- bbmsy_mat_vv
     bbmsy_v_med <- apply(bbmsy_mat_v, 1, median)
     bbmsy_vv_med <- apply(bbmsy_mat_vv, 1, median)
-    bbmsy_mats_vv[[i]] <- bbmsy_mat_vv
     bbmsy_v_meds[[i]] <- bbmsy_v_med
     bbmsy_vv_meds[[i]] <- bbmsy_vv_med
   }
@@ -334,6 +339,7 @@ fit_mssra <- function(catch, years, stocks, res, id_fixed, npairs=10000, status)
               bbmsy_v=bbmsy_mats_v,
               bbmsy_v_median=bbmsy_v_meds,
               er_v=er_mats_v,
+              er_vv=er_mats_vv,
               top_corr=top_corr,
               bbmsy_vv=bbmsy_mats_vv,
               bbmsy_vv_median=bbmsy_vv_meds)
@@ -347,7 +353,7 @@ plot_mssra <- function(out, true){
   # Loop through species
   spp <- species
   nspp <- length(species)
-  par(mfcol=c(2,nspp), mar=c(3,4,2,1), mgp=c(2.5,0.7,0), xpd=NA)
+  par(mfcol=c(3,nspp), mar=c(3,4,2,1), mgp=c(2.5,0.7,0), xpd=NA)
   for(i in 1:length(species)){
     
     # Subset data
@@ -363,6 +369,7 @@ plot_mssra <- function(out, true){
     s2_priors <-out$s2_priors
     r_priors <- out$r_priors
     k_priors <- out$k_priors
+    er_vv <- out$er_vv[[i]]
     bbmsy_vv <- out$bbmsy_vv[[i]]
     bbmsy_vv_median <- out$bbmsy_vv_median[[i]]
     top_corr <- out$top_corr
@@ -436,11 +443,12 @@ plot_mssra <- function(out, true){
     # Plot exploitation trajectories
     #########################################
     
-    # # Plot exploitation trajectories
-    # plot(er_viable[,1] ~ yrs, type="n", bty="n", las=1,
-    #      ylim=c(0, 1), xlab="Year", ylab="Exploitation rate")
-    # for(k in 1:ncol(er_viable)){lines(x=yrs, y=er_viable[,k], col="grey80")}
-    # lines(x=yrs, y=true$er_ts[,i+1], lwd=1.5, col="red")
+    # Plot exploitation trajectories
+    plot(er_viable[,1] ~ yrs, type="n", bty="n", las=1,
+         ylim=c(0, 1), xlab="Year", ylab="Exploitation rate")
+    for(k in 1:ncol(er_viable)){lines(x=yrs, y=er_viable[,k], col="grey80")}
+    for(k in 1:ncol(er_vv)){lines(x=yrs, y=er_vv[,k], col=freeR::tcolor("darkorange", 0.6))}
+    lines(x=yrs, y=true$er_ts[,i+1], lwd=1.5, col="red", lty=3)
     
   }
   
