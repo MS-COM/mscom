@@ -18,13 +18,8 @@ library(RColorBrewer)
 
 # Directories
 datadir <- "data/test_cases/original"
-outdir <- "data/test_casesori"
+outdir <- "data/test_cases/data"
 tabledir <- "tables"
-plotdir <- "figures"
-
-
-# Format data
-################################################################################
 
 # Read data
 spp <- import(file.path(datadir, "GulfThaiSpecies.xlsx"), which=1)
@@ -32,6 +27,10 @@ c_rw <- import(file.path(datadir, "GulfThaiSpecies.xlsx"), which=2)
 c_fao <- import(file.path(datadir, "GulfThaiSpecies.xlsx"), which=3)
 c_fao_t <- import(file.path(datadir, "GulfThaiSpecies.xlsx"), which=4)
 er <- import(file.path(datadir, "Gulf_of_Thailand_ER.xlsx"))
+
+
+# Format data
+################################################################################
 
 # Format species key
 species <- spp %>% 
@@ -79,40 +78,9 @@ rw_long <- c_rw %>%
   arrange(fleet, comm_name, year)
 sort(unique(rw_long$comm_name))
 
-# Merge data
-data <- fao_long %>% 
-  left_join(select(species, comm_name, sci_name), by="comm_name") %>% 
-  select(comm_name, sci_name, year, catch) %>% 
-  left_join(er_long, by=c("year", "sci_name")) %>% 
-  mutate(catch_thous=catch / 1000)
-
-# Check completeness
-freeR::complete(data)
-
-sort(unique(fao_long$comm_name))
-
-
-# Catch by fleet
-################################################################################
-
-# Summarize trawl fishery
-trawl_spp <- rw_long %>% 
-  filter(fleet=="Trawl" & year>2005) %>% 
-  group_by(comm_name, sci_name) %>% 
-  summarize(c_avg=mean(c_rep)) %>% 
-  ungroup() %>% 
-  mutate(c_perc=c_avg/sum(c_avg)*100,
-         name_format=paste0(comm_name, " (", sci_name, ")"),
-         c_format=paste0(round(c_avg,1), " / ", round(c_perc, 1), "%")) %>%
-  select(name_format, comm_name, sci_name, c_avg, c_perc, c_format) %>% 
-  arrange(desc(c_perc))
-
-# Export table
-write.csv(trawl_spp, file.path(tabledir, "TableX_GoT_trawl_fishery_species.csv"), row.names=F)
 
 # Visualize data
 ################################################################################
-
 
 fleet_spp <- rw_long %>% 
   group_by(fleet, comm_name) %>% 
@@ -128,36 +96,44 @@ ggplot(er_long, aes(x = year, y = er)) +
   geom_line() +
   facet_wrap(~ sci_name, ncol=4)
 
-# Visualize data
+
+# Build data
 ################################################################################
 
-# Setup figure
-figname <- "FigX_GOT_predictions.png"
-png(file.path(plotdir, figname), width=6.5, height=5, units="in", res=600)
-species <- c("Blue swimming crab", "Bigeye scad", "Largehead hairtail")
+# Examine trawl fishery data from Watson data
+trawl_spp <- rw_long %>% 
+  filter(fleet=="Trawl" & year>2005) %>% 
+  group_by(comm_name, sci_name) %>% 
+  summarize(c_avg=mean(c_rep, na.rm=T)) %>% 
+  ungroup() %>% 
+  mutate(c_perc=c_avg/sum(c_avg)*100,
+         name_format=paste0(comm_name, " (", sci_name, ")"),
+         c_format=paste0(round(c_avg,1), " / ", round(c_perc, 1), "%")) %>%
+  select(name_format, comm_name, sci_name, c_avg, c_perc, c_format) %>% 
+  arrange(desc(c_perc))
 
-# Loop through species
-par(mfcol=c(3, length(species)), mar=c(3,3,0.5,0.5), oma=c(0,3,0,0), mgp=c(3.5,0.8,0), xpd=NA)
-for(i in 1:length(species)){
-  
-  # Plot catch
-  ylabel <- ifelse(i==1, "Catch (1000s mt)", "")
-  sdata <- filter(data, comm_name==species[i])
-  plot(catch ~ year, sdata, bty="n", type="l", las=2, xlab="", ylab=ylabel)
-  
-  # Plot exploitation rate
-  ylabel <- ifelse(i==1, "Exploitation rate", "")
-  plot(er ~ year, sdata, bty="n", type="l", las=2, xlab="", ylab=ylabel, ylim=c(0,1))
-  
-  # Plot status estimate
-  ylabel <- ifelse(i==1, "B/BMSY", "")
-  plot(er ~ year, sdata, bty="n", type="n", las=2, xlab="", ylab=ylabel, ylim=c(0,1))
-  
-  
-}
+# Target species
+spp_do <- c("Blue swimming crab", "Bigeye scad", "Largehead hairtail")
 
-# Off
-dev.off()
+# Merge data
+data <- fao_long %>% 
+  filter(comm_name%in%spp_do & !is.na(catch)) %>% 
+  left_join(select(species, comm_name, sci_name), by="comm_name") %>% 
+  select(comm_name, sci_name, year, catch) %>% 
+  left_join(er_long, by=c("year", "sci_name")) %>% 
+  mutate(catch=as.numeric(catch))
 
+# What percentage of these species are caught outside the trawl fishery?
+spp_do_stats <- rw_long %>% 
+  filter(comm_name %in% spp_do & year > 2005) %>% 
+  group_by(comm_name, fleet) %>% 
+  summarize(c_avg=mean(c_rep, na.rm=T))
+  
 
+# Export data
+################################################################################
+
+# Export data
+write.csv(data, file.path(outdir, "gulf_of_thailand_trawl_catch_data.csv"), row.names=F)
+write.csv(trawl_spp, file.path(tabledir, "TableX_got_summary.csv"), row.names=F)
 
