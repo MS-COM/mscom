@@ -1,17 +1,17 @@
 "fishery","nstocks","stocks1","nyr","corr_avg","vr","vr_scaled"
-"ICCAT South Atlantic tunas",2,"2 - albacore tuna, swordfish",63,0.833461089751132,1.65854470927697,1.70994169205616
-"IOTC Indian Ocean tunas",4,"4 - albacore tuna, bigeye tuna, black marlin, indo-pacific blue marlin, skipjack tuna, striped marlin, swordfish, yellowfin tuna",65,0.811207652342871,2.41425198433975,3.28033594157127
-"SPC West Pacific tunas",4,"4 - bigeye tuna, skipjack tuna, striped marlin, yellowfin tuna",60,0.803978136689338,2.87925480671062,3.28203962921489
-"ICCAT Atlantic tunas",2,"2 - sailfish, yellowfin tuna",55,0.764068176791567,1.69973857874415,1.75378860015121
+"ICCAT South Atlantic tunas",2,"2 - albacore tuna, swordfish",57,0.833461089751132,1.65854470927697,1.70994169205616
+"IOTC Indian Ocean tunas",4,"4 - albacore tuna, bigeye tuna, black marlin, indo-pacific blue marlin, skipjack tuna, striped marlin, swordfish, yellowfin tuna",62,0.811207652342871,2.41425198433975,3.28033594157127
+"SPC West Pacific tunas",4,"4 - bigeye tuna, skipjack tuna, striped marlin, yellowfin tuna",40,0.803978136689338,2.87925480671062,3.28203962921489
+"ICCAT Atlantic tunas",2,"2 - sailfish, yellowfin tuna",51,0.764068176791567,1.69973857874415,1.75378860015121
 "Australia SE scalefish/sharks",3,"3 - blue grenadier, ling, silver warehou, tiger flathead",28,0.703827313897247,2.30185713311415,2.13577943969206
-"ICCAT East Atlantic tunas",5,"5 - atlantic bluefin tuna, bigeye tuna, blue marlin, skipjack tuna, swordfish, white marlin",55,0.678862224218738,3.71288314150204,3.62976485997115
-"ICCAT West Atlantic tunas",2,"2 - atlantic bluefin tuna, sailfish, skipjack tuna",55,0.573351990579755,1.07493280939293,1.54866684097692
-"IATTC East Pacific tunas",2,"2 - bigeye tuna, skipjack tuna, striped marlin, swordfish, yellowfin tuna",56,0.513141652907879,1.43381569700774,1.43166528664808
+"ICCAT East Atlantic tunas",5,"5 - atlantic bluefin tuna, bigeye tuna, blue marlin, skipjack tuna, swordfish, white marlin",51,0.678862224218738,3.71288314150204,3.62976485997115
+"ICCAT West Atlantic tunas",2,"2 - atlantic bluefin tuna, sailfish, skipjack tuna",51,0.573351990579755,1.07493280939293,1.54866684097692
+"IATTC East Pacific tunas",2,"2 - bigeye tuna, skipjack tuna, striped marlin, swordfish, yellowfin tuna",35,0.513141652907879,1.43381569700774,1.43166528664808
 "USA West Coast DTS",4,"4 - dover sole, longspine thornyhead, sablefish, shortspine thornyhead",47,0.47670325734811,1.5310920916579,1.9764811653102
-"NZ Chatham Rise middle-depth",3,"3 - hoki, ling, southern hake",39,0.405081000736934,1.44852193092042,1.83356252857081
-"USA GB groundfish",3,"3 - atlantic cod, haddock, winter flounder, yellowtail flounder",30,0.292329764947159,1.18073653950406,1.40604606262889
-"USA GB/GOM groundfish",3,"3 - acadian redfish, american plaice, pollock, white hake",35,0.234163580073599,1.22974163357193,1.48527473770183
-"ICCAT Mediterranean tunas",2,"2 - albacore tuna, swordfish",59,0.000674152883838989,1.00017813359331,1.0005194488152
-"ISC North Pacific tunas",2,"2 - albacore tuna, blue shark, blue marlin, swordfish",41,-0.00116424891107624,0.998914148792516,0.998946153242644
-"USA GOM groundfish",3,"3 - atlantic cod, haddock, winter flounder, witch flounder, yellowtail flounder",6,-0.0355588609585351,1.2633709717051,1.0355782724841
+"NZ Chatham Rise middle-depth",3,"3 - hoki, ling, southern hake",35,0.405081000736934,1.44852193092042,1.83356252857081
+"USA GB groundfish",3,"3 - atlantic cod, haddock, winter flounder, yellowtail flounder",31,0.292329764947159,1.18073653950406,1.40604606262889
+"USA GB/GOM groundfish",3,"3 - acadian redfish, american plaice, pollock, white hake",38,0.234163580073599,1.22974163357193,1.48527473770183
+"ICCAT Mediterranean tunas",2,"2 - albacore tuna, swordfish",24,0.000674152883838989,1.00017813359331,1.0005194488152
+"ISC North Pacific tunas",2,"2 - albacore tuna, blue shark, blue marlin, swordfish",20,-0.00116424891107624,0.998914148792516,0.998946153242644
+"USA GOM groundfish",3,"3 - atlantic cod, haddock, winter flounder, witch flounder, yellowtail flounder",23,-0.0355588609585351,1.2633709717051,1.0355782724841
 "USA BSAI groundfish",3,"3 - pacific cod, walleye pollock, walleye pollock, yellowfin sole",36,-0.13955376018917,0.770152995647337,0.856832249360677
