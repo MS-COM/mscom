@@ -262,7 +262,7 @@ for(i in 1:length(data)){
     corr_df$fishery[i] <- fishery
     corr_df$nstocks[i] <- ncol(erdata)
     corr_df$stocks[i] <- paste(fstocks$comm_name, collapse=", ")
-    corr_df$nyr[i] <- nrow(tc_use)
+    corr_df$nyr[i] <- nrow(erdata)
     corr_df$corr_avg[i] <- mean(corrs)
     corr_df$corr_se[i] <- plotrix::std.error(corrs)
     
