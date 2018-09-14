@@ -181,7 +181,6 @@ r_priors2 <- matrix(c(0.01, 0.15,
                       0.01, 1.0,
                       0.5, 1.25), ncol=2, byrow=T)
 
-
 # Add r priors
 for(i in 1:nrow(r_priors1)){
   lines(x=rep(-0.5+i, 2), y=c(r_priors1[i,1], r_priors1[i,2]), col=tcolor("orange", 0.5), lwd=3)
@@ -242,9 +241,10 @@ plot(sat2 ~ cratio, results, bty="n", type="n", las=1, ylim=c(0,2),
 
 # Add MS-cMSY prior
 x <- seq(0,1,0.1)
-y2 <- 0 + 0.4*x
-y1 <- 0.8 + 0.2*x
-polygon(x=c(x, rev(x)), y=c(y1, rev(y2)), col=tcolor("darkgreen", 0.3), border=F)
+y1 <- 0 + 0.4*x
+# y2 <- 0.8 + 0.2*x
+y2 <- 0.5 + 0.4*x
+polygon(x=c(x, rev(x)), y=c(y2, rev(y1)), col=tcolor("darkgreen", 0.3), border=F)
 
 # Add cMSY prior
 x <- cmsy_priors$cr
