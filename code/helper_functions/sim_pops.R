@@ -57,7 +57,8 @@ sim_pops <- function(input_df,
 
 	qDev <- lapply(1:nspecies, function(x){
 		sp <- input_df %>% dplyr::filter(species==species[x])
-		dev <- with(sp, rnorm(Tyears[[x]], mean= -(SigmaF ^ 2)/2, sd=SigmaF))
+		# dev <- with(sp, rnorm(Tyears[[x]], mean= -(SigmaF ^ 2)/2, sd=SigmaF)) # Merrill's version
+		dev <- with(sp, rnorm(Tyears[[x]], mean= 0, sd=SigmaF)) # Chris' version
 		walk <- sapply(1:length(dev), function(x){
 			if(x==1) w <- dev[x]
 			if(x>1) w <- dev[x-1] + dev[x] 

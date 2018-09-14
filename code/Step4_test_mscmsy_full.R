@@ -53,10 +53,11 @@ for(i in 1:length(files)){
     print(paste(file_i, j))
     
     # Format data for MS-cMSY
-    catch <- dcast(sdata, Year ~ Species, value.var="Catch")
-    yrs <- catch$Year
-    catch <- as.matrix(select(catch, -Year))
+    catch <- dcast(sdata, Year ~ Species, value.var="Catch") %>% 
+      rename(year=Year) %>% 
+      mutate(year=1960:2009)
     species <- colnames(catch)
+    species <- species[species!="year"]
     res <- c("Medium", "Low", "Medium")
     
     # True values
@@ -68,11 +69,11 @@ for(i in 1:length(files)){
     true$bbmsy_ts <- dcast(sdata, Year ~ Species, value.var="BBmsy")
     
     # Fit MS-cMSY
-    out <- fit_mssra(catch=catch, years=yrs, stocks=species, res=res, id_fixed=F, npairs=1000)
+    out <- ms_cmsy(catch=catch, stocks=species, res=res, id_fixed=F, npairs=10000)
     output_i[[j]] <- out
     
     # Plot MS-cMSY
-    # plot_mssra(out, true)
+    # plot_ms_cmsy(out, true)
     
     
   }

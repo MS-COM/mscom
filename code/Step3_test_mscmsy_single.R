@@ -38,10 +38,11 @@ s <- 4
 sdata <- byScen[[s]]
 
 # Format data for MS-cMSY
-catch <- dcast(sdata, Year ~ Species, value.var="Catch")
-yrs <- catch$Year
-catch <- as.matrix(select(catch, -Year))
+catch <- dcast(sdata, Year ~ Species, value.var="Catch") %>% 
+  rename(year=Year) %>% 
+  mutate(year=1960:2009)
 species <- colnames(catch)
+species <- species[species!="year"]
 res <- c("Medium", "Low", "Medium")
 
 # True values
@@ -57,9 +58,9 @@ bbmsy_end_true <- as.numeric(true$bbmsy_ts[nrow(true$bbmsy_ts),2:ncol(true$bbmsy
 status_end_true <- as.character(cut(bbmsy_end_true, breaks=c(0,0.5,1.5,999), labels=c("over", "fully", "under")))
 
 # Fit MS-cMSY
-out <- fit_mssra(catch=catch, years=yrs, stocks=species, res=res, id_fixed=F, npairs=3000)
+out <- ms_cmsy(catch=catch, stocks=species, res=res, id_fixed=F, npairs=1000)
 
 # Plot MS-cMSY
-plot_mssra(out, true)
+plot_ms_cmsy(out, true)
 
 
