@@ -92,13 +92,21 @@ for(i in 1:length(files)){
 # Format data
 data <- data %>% 
   arrange(dyn, id, ed, maxf, effsd, iter) %>% 
-  mutate(cmsy_diff=(cmsy-true)/true*100,
-         mscmsy_diff=(mscmsy-true)/true*100)
+  mutate(sim_id=paste(dyn, id, ed, maxf, effsd, iter, sep="-"),
+         stock_id=paste(dyn, id, ed, maxf, effsd, iter, stock, sep="-"),
+         cmsy_diff=(cmsy-true)/true*100,
+         mscmsy_diff=(mscmsy-true)/true*100) %>% 
+  select(sim_id, stock_id, dyn:mscmsy_diff)
+
+# Export results
+write.csv(data, file.path(outdir, "pelagic_longline_simtest_results.csv"), row.names=F)
 
 # Visualize performance
-boxplot(data[,c("cmsy_diff", "mscmsy_diff")], frame=F, las=1, lty=1,
+boxplot(data[,c("cmsy_diff", "mscmsy_diff")], frame=F, las=1, lty=1, ylim=c(-300, 300),
         names=c("cMSY", "MS-cMSY"), ylab="Percent error in estimate")
 lines(x=c(0.5,3.5), y=c(0,0), lty=2, col="red")
+
+
 
 
 
