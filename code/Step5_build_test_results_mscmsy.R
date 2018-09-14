@@ -102,8 +102,8 @@ data <- data %>%
 write.csv(data, file.path(outdir, "pelagic_longline_simtest_results.csv"), row.names=F)
 
 # Visualize performance
-boxplot(data[,c("cmsy_diff", "mscmsy_diff")], frame=F, las=1, lty=1,
-        names=c("cMSY", "MS-cMSY"), ylab="Percent error in estimate", outline = F)
+boxplot(data[,c("cmsy_diff", "mscmsy_diff")], frame=F, las=1, lty=1, ylim=c(-300, 300),
+        names=c("cMSY", "MS-cMSY"), ylab="Percent error in estimate")
 lines(x=c(0.5,3.5), y=c(0,0), lty=2, col="red")
 
 
