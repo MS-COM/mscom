@@ -41,14 +41,3 @@ lines(x=c(0.5,3.5), y=c(0,0), lty=2, col="black")
 # Off
 dev.off()
 
-
-# Plot results
-plot(mscmsy ~ true, data, bty="n", las=1, col="grey80",
-     xlim=c(0,2), ylim=c(0,2),
-     xlab=expression("B/B"["MSY"]*" true"), 
-     ylab=expression("B/B"["MSY"]*" estimated"))
-lines(x=c(0.5, 0.5), y=c(0,2), lty=3)
-lines(x=c(0, 2), y=c(0.5,0.5), lty=3)
-
-
-
