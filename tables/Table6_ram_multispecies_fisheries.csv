@@ -1,29 +1,67 @@
 "fishery","name","stockid","catch","resilience","m"
-"Australia SE scalefish and shark fishery","Tiger flathead (Platycephalus richardsoni)","TIGERFLATSE","3280 / 45.3%","Medium",0.361661570898477
-"Australia SE scalefish and shark fishery","Silver warehou (Seriolella punctata)","SILVERFISHSE","3044 / 42.1%","Medium",0.401299105334464
-"Australia SE scalefish and shark fishery","Ling (Genypterus blacodes)","NZLINGESE","913 / 12.6%","Low",0.193380201671126
-"Australia SE scalefish and shark fishery","Blue grenadier (Macruronus novaezelandiae)","BGRDRSE","no catch data","Low",0.237023380049284
+"Australia SE scalefish/sharks fishery","Tiger flathead (Platycephalus richardsoni)","TIGERFLATSE","3280 / 45.3%","Medium",0.361661570898477
+"Australia SE scalefish/sharks fishery","Silver warehou (Seriolella punctata)","SILVERFISHSE","3044 / 42.1%","Medium",0.401299105334464
+"Australia SE scalefish/sharks fishery","Ling (Genypterus blacodes)","NZLINGESE","913 / 12.6%","Low",0.193380201671126
+"Australia SE scalefish/sharks fishery","Blue grenadier (Macruronus novaezelandiae)","BGRDRSE","no catch data","Low",0.237023380049284
+"IATTC East Pacific tunas fishery","Yellowfin tuna (Thunnus albacares)","YFINEPAC","293000 / 45.5%","Medium",0.500982505729481
+"IATTC East Pacific tunas fishery","Skipjack tuna (Katsuwonus pelamis)","SKJEPAC","229100 / 35.6%","Medium",0.91821071796981
+"IATTC East Pacific tunas fishery","Bigeye tuna (Thunnus obesus)","BIGEYEEPAC","115540 / 17.9%","Medium",0.327124601839471
+"IATTC East Pacific tunas fishery","Swordfish (Xiphias gladius)","SWORDEPAC","5439 / 0.8%","Medium",0.235887154225588
+"IATTC East Pacific tunas fishery","Striped marlin (Kajikia audax)","STMARLINNEPAC","1290 / 0.2%","Low",0.474555695752946
+"ICCAT Atlantic tunas fishery","Yellowfin tuna (Thunnus albacares)","YFINATL","116000 / 98.2%","Medium",0.500982505729481
+"ICCAT Atlantic tunas fishery","Sailfish (Istiophorus albicans)","SAILEATL","2149 / 1.8%","Medium",0.639248290342673
+"ICCAT East Atlantic tunas fishery","Skipjack tuna (Katsuwonus pelamis)","SKJEATL","133600 / 56.9%","Medium",0.91821071796981
+"ICCAT East Atlantic tunas fishery","Bigeye tuna (Thunnus obesus)","BIGEYEATL","77570 / 33%","Medium",0.327124601839471
+"ICCAT East Atlantic tunas fishery","Swordfish (Xiphias gladius)","SWORDNATL","11425 / 4.9%","Medium",0.235887154225588
+"ICCAT East Atlantic tunas fishery","Atlantic bluefin tuna (Thunnus thynnus)","ATBTUNAEATL","7979 / 3.4%","Low",0.152336187713751
+"ICCAT East Atlantic tunas fishery","Blue marlin (Makaira nigricans)","BMARLINATL","3729 / 1.6%","Medium",0.328342363534166
+"ICCAT East Atlantic tunas fishery","White marlin (Kajikia albida)","WMARLINATL","678 / 0.3%","Medium",0.511433014940102
+"ICCAT Mediterranean tunas fishery","Swordfish (Xiphias gladius)","SWORDMED","13874 / 72.8%","Medium",0.235887154225588
+"ICCAT Mediterranean tunas fishery","Albacore tuna (Thunnus alalunga)","ALBAMED","5183 / 27.2%","Medium",0.255720222864568
+"ICCAT South Atlantic tunas fishery","Albacore tuna (Thunnus alalunga)","ALBASATL","21510 / 63.5%","Medium",0.255720222864568
+"ICCAT South Atlantic tunas fishery","Swordfish (Xiphias gladius)","SWORDSATL","12372 / 36.5%","Medium",0.235887154225588
+"ICCAT West Atlantic tunas fishery","Skipjack tuna (Katsuwonus pelamis)","SKJWATL","25650 / 87.9%","Medium",0.91821071796981
+"ICCAT West Atlantic tunas fishery","Atlantic bluefin tuna (Thunnus thynnus)","ATBTUNAWATL","2159 / 7.4%","Low",0.152336187713751
+"ICCAT West Atlantic tunas fishery","Sailfish (Istiophorus albicans)","SAILWATL","1374 / 4.7%","Medium",0.639248290342673
+"IOTC Indian Ocean tunas fishery","Skipjack tuna (Katsuwonus pelamis)","SKJCIO","453300 / 43.9%","Medium",0.91821071796981
+"IOTC Indian Ocean tunas fishery","Yellowfin tuna (Thunnus albacares)","YFINEIO","372400 / 36.1%","Medium",0.500982505729481
+"IOTC Indian Ocean tunas fishery","Bigeye tuna (Thunnus obesus)","BIGEYEIO","116350 / 11.3%","Medium",0.327124601839471
+"IOTC Indian Ocean tunas fishery","Albacore tuna (Thunnus alalunga)","ALBAIO","35230 / 3.4%","Medium",0.255720222864568
+"IOTC Indian Ocean tunas fishery","Swordfish (Xiphias gladius)","SWORDIO","28550 / 2.8%","Medium",0.235887154225588
+"IOTC Indian Ocean tunas fishery","Black marlin (Istiompax indica)","BLKMARLINIO","11952 / 1.2%","Medium",0.512589141514266
+"IOTC Indian Ocean tunas fishery","Indo-Pacific blue marlin (Makaira mazara)","BMARLINIO","10724 / 1%","Low",0.224538819545233
+"IOTC Indian Ocean tunas fishery","Striped marlin (Kajikia audax)","STMARLINIO","3232 / 0.3%","Low",0.474555695752946
+"ISC North Pacific tunas fishery","Albacore tuna (Thunnus alalunga)","ALBANPAC","80760 / 50.1%","Medium",0.255720222864568
+"ISC North Pacific tunas fishery","Blue shark (Prionace glauca)","BLSHARNPAC","47310 / 29.4%","Very low",0.21396988466347
+"ISC North Pacific tunas fishery","Blue marlin (Makaira nigricans)","BMARLINPAC","19930 / 12.4%","Medium",0.328342363534166
+"ISC North Pacific tunas fishery","Swordfish (Xiphias gladius)","SWORDNPAC","13176 / 8.2%","Medium",0.235887154225588
 "NZ Chatham Rise middle-depth fishery","Hoki (Macruronus novaezelandiae)","HOKIENZ","63070 / 91.9%","Low",0.237023380049284
 "NZ Chatham Rise middle-depth fishery","Ling (Genypterus blacodes)","NZLINGLIN3-4","4066 / 5.9%","Low",0.193380201671126
 "NZ Chatham Rise middle-depth fishery","Southern hake (Merluccius australis)","SOUTHHAKECR","1464 / 2.1%","Low",0.233194925626374
-"US BSAI groundfish fishery","Walleye pollock (Theragra chalcogramma)","WPOLLEBS","1190200 / 90%","Low",0.406954615049328
-"US BSAI groundfish fishery","Yellowfin sole (Limanda aspera)","YSOLEBSAI","131080 / 9.9%","Low",0.153311319563509
-"US BSAI groundfish fishery","Walleye pollock (Theragra chalcogramma)","WPOLLAI","1764 / 0.1%","Low",0.406954615049328
-"US BSAI groundfish fishery","Pacific cod (Gadus macrocephalus)","PCODBSAI","no catch data","Low",0.403583439350381
-"US GB groundfish fishery","Haddock (Melanogrammus aeglefinus)","HADGB","18870 / 62.8%","Medium",0.354265019571743
-"US GB groundfish fishery","Atlantic cod (Gadus morhua)","CODGB","5934 / 19.7%","Medium",0.270287991797001
-"US GB groundfish fishery","Yellowtail flounder (Limanda ferruginea)","YELLGB","3226 / 10.7%","Medium",0.219156861681078
-"US GB groundfish fishery","Winter flounder (Pseudopleuronectes americanus)","WINFLOUN5Z","2024 / 6.7%","Medium",0.335817999116794
-"US GB/GOM groundfish fishery","Pollock (Pollachius virens)","POLL5YZ","8460 / 58.4%","Medium",0.213934974123137
-"US GB/GOM groundfish fishery","Acadian redfish (Sebastes fasciatus)","ACADREDGOMGB","2279 / 15.7%","Low",0.139530289127198
-"US GB/GOM groundfish fishery","White hake (Urophycis tenuis)","WHAKEGBGOM","2212 / 15.3%","Low",0.207190057658322
-"US GB/GOM groundfish fishery","American plaice (Hippoglossoides platessoides)","AMPL5YZ","1531 / 10.6%","Low",0.210817512287924
-"US GOM groundfish fishery","Atlantic cod (Gadus morhua)","CODGOM","4860 / 63.9%","Medium",0.270287991797001
-"US GOM groundfish fishery","Witch flounder (Glyptocephalus cynoglossus)","WITFLOUN5Y","884 / 11.6%","Low",0.224851030266693
-"US GOM groundfish fishery","Haddock (Melanogrammus aeglefinus)","HAD5Y","867 / 11.4%","Medium",0.354265019571743
-"US GOM groundfish fishery","Yellowtail flounder (Limanda ferruginea)","YELLCCODGOM","713 / 9.4%","Medium",0.219156861681078
-"US GOM groundfish fishery","Winter flounder (Pseudopleuronectes americanus)","WINFLOUND5Y","279 / 3.7%","Medium",0.335817999116794
-"US West Coast DTS fishery","Dover sole (Microstomus pacificus)","DSOLEPCOAST","9284 / 52.6%","Low",0.143726560356019
-"US West Coast DTS fishery","Sablefish (Anoplopoma fimbria)","SABLEFPCOAST","6188 / 35.1%","Very low",0.285281648960246
-"US West Coast DTS fishery","Longspine thornyhead (Sebastolobus altivelis)","LSTHORNHPCOAST","1137 / 6.4%","Low",0.0973836937971203
-"US West Coast DTS fishery","Shortspine thornyhead (Sebastolobus alascanus)","SSTHORNHPCOAST","1036 / 5.9%","Very low",0.0555023610420896
+"SPC West Pacific tunas fishery","Skipjack tuna (Katsuwonus pelamis)","SKJCWPAC","1512000 / 68.6%","Medium",0.91821071796981
+"SPC West Pacific tunas fishery","Yellowfin tuna (Thunnus albacares)","YFINCWPAC","535700 / 24.3%","Medium",0.500982505729481
+"SPC West Pacific tunas fishery","Bigeye tuna (Thunnus obesus)","BIGEYECWPAC","154400 / 7%","Medium",0.327124601839471
+"SPC West Pacific tunas fishery","Striped marlin (Kajikia audax)","STMARLINSWPO","1912 / 0.1%","Low",0.474555695752946
+"USA BSAI groundfish fishery","Walleye pollock (Theragra chalcogramma)","WPOLLEBS","1190200 / 90%","Low",0.406954615049328
+"USA BSAI groundfish fishery","Yellowfin sole (Limanda aspera)","YSOLEBSAI","131080 / 9.9%","Low",0.153311319563509
+"USA BSAI groundfish fishery","Walleye pollock (Theragra chalcogramma)","WPOLLAI","1764 / 0.1%","Low",0.406954615049328
+"USA BSAI groundfish fishery","Pacific cod (Gadus macrocephalus)","PCODBSAI","no catch data","Low",0.403583439350381
+"USA GB groundfish fishery","Haddock (Melanogrammus aeglefinus)","HADGB","18870 / 62.8%","Medium",0.354265019571743
+"USA GB groundfish fishery","Atlantic cod (Gadus morhua)","CODGB","5934 / 19.7%","Medium",0.270287991797001
+"USA GB groundfish fishery","Yellowtail flounder (Limanda ferruginea)","YELLGB","3226 / 10.7%","Medium",0.219156861681078
+"USA GB groundfish fishery","Winter flounder (Pseudopleuronectes americanus)","WINFLOUN5Z","2024 / 6.7%","Medium",0.335817999116794
+"USA GB/GOM groundfish fishery","Pollock (Pollachius virens)","POLL5YZ","8460 / 58.4%","Medium",0.213934974123137
+"USA GB/GOM groundfish fishery","Acadian redfish (Sebastes fasciatus)","ACADREDGOMGB","2279 / 15.7%","Low",0.139530289127198
+"USA GB/GOM groundfish fishery","White hake (Urophycis tenuis)","WHAKEGBGOM","2212 / 15.3%","Low",0.207190057658322
+"USA GB/GOM groundfish fishery","American plaice (Hippoglossoides platessoides)","AMPL5YZ","1531 / 10.6%","Low",0.210817512287924
+"USA GOM groundfish fishery","Atlantic cod (Gadus morhua)","CODGOM","4860 / 63.9%","Medium",0.270287991797001
+"USA GOM groundfish fishery","Witch flounder (Glyptocephalus cynoglossus)","WITFLOUN5Y","884 / 11.6%","Low",0.224851030266693
+"USA GOM groundfish fishery","Haddock (Melanogrammus aeglefinus)","HAD5Y","867 / 11.4%","Medium",0.354265019571743
+"USA GOM groundfish fishery","Yellowtail flounder (Limanda ferruginea)","YELLCCODGOM","713 / 9.4%","Medium",0.219156861681078
+"USA GOM groundfish fishery","Winter flounder (Pseudopleuronectes americanus)","WINFLOUND5Y","279 / 3.7%","Medium",0.335817999116794
+"USA Mid-Atlantic MSB fishery","Northern shortfin squid (Illex illecebrosus)","ILLEXNWATLC","12185 / 69.1%",NA,NA
+"USA Mid-Atlantic MSB fishery","Atlantic butterfish (Peprilus triacanthus)","BUTTERGOMCHATT","5451 / 30.9%","High",1.03407893184109
+"USA West Coast DTS fishery","Dover sole (Microstomus pacificus)","DSOLEPCOAST","9284 / 52.6%","Low",0.143726560356019
+"USA West Coast DTS fishery","Sablefish (Anoplopoma fimbria)","SABLEFPCOAST","6188 / 35.1%","Very low",0.285281648960246
+"USA West Coast DTS fishery","Longspine thornyhead (Sebastolobus altivelis)","LSTHORNHPCOAST","1137 / 6.4%","Low",0.0973836937971203
+"USA West Coast DTS fishery","Shortspine thornyhead (Sebastolobus alascanus)","SSTHORNHPCOAST","1036 / 5.9%","Very low",0.0555023610420896
