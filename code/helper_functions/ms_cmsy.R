@@ -400,10 +400,10 @@ ms_cmsy <- function(catch, stocks, res, id_fixed, npairs=10000){
 plot_ms_cmsy <- function(out, true){
   
   # Loop through species
-  spp <- species
-  nspp <- length(species)
+  spp <- out$stocks
+  nspp <- length(spp)
   par(mfcol=c(3,nspp), mar=c(3,4,2,1), mgp=c(2.5,0.7,0), xpd=NA)
-  for(i in 1:length(species)){
+  for(i in 1:length(spp)){
     
     # Subset data
     yrs <- out$yrs
