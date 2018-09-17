@@ -13,145 +13,119 @@ library(rio)
 library(plyr)
 library(dplyr)
 library(tidyr)
+library(ggplot2)
 library(reshape2)
 library(RColorBrewer)
 
 # Directories
-datadir <- "data/test_cases/original"
-outdir <- "data/test_casesori"
-tabledir <- "tables"
+datadir <- "data/test_cases/data"
 plotdir <- "figures"
 
-
-# Format data
-################################################################################
-
 # Read data
-spp <- import(file.path(datadir, "GulfThaiSpecies.xlsx"), which=1)
-c_rw <- import(file.path(datadir, "GulfThaiSpecies.xlsx"), which=2)
-c_fao <- import(file.path(datadir, "GulfThaiSpecies.xlsx"), which=3)
-c_fao_t <- import(file.path(datadir, "GulfThaiSpecies.xlsx"), which=4)
-er <- import(file.path(datadir, "Gulf_of_Thailand_ER.xlsx"))
+catch <- read.csv(file.path(datadir, "gulf_of_thailand_trawl_catch_data.csv"), as.is=T)
+load(file.path(datadir, "got_ms_cmsy_predictions.Rdata"))
 
-# Format species key
-species <- spp %>% 
-  rename(sci_name_orig=sciname, comm_name=commname, sci_name=NewSciName) %>% 
-  select(comm_name, sci_name, sci_name_orig) %>% 
-  mutate(sci_name=ifelse(is.na(sci_name), sci_name_orig, sci_name),
-         sci_name=stringr::str_trim(sci_name), 
-         comm_name=stringr::str_trim(comm_name)) %>% 
-  rbind(c("Monocle breams", rep("Scolopsis spp.", 2)))
-sort(unique(species$sci_name))
+# Format catch data
+catch_w <- na.omit(dcast(catch, year ~ comm_name, value.var="catch"))
 
-# Format FAO catch data
-fao_long <- c_fao_t %>% 
-  setNames(., paste0("col", 1:ncol(c_fao_t))) %>% 
-  select(col10:col16) %>% 
-  setNames(., .[1,]) %>% 
-  slice(-1) %>% 
-  rename(year="Year") %>% 
-  melt(id.vars="year", variable.name="comm_name", value.name="catch") %>% 
-  select(comm_name, year, catch) %>% 
-  mutate(year=as.numeric(year),
-         comm_name=as.character(comm_name))
-unique(fao_long$comm_name)[!unique(fao_long$comm_name) %in% species$comm_name]
-
-# Format ER data
-er_long <- er %>% 
-  rename(year=Year) %>% 
-  melt(id.vars="year", variable.name="sci_name", value.name="er") %>% 
-  select(sci_name, year, er) %>% 
-  mutate(sci_name=as.character(sci_name),
-         sci_name=revalue(sci_name, c("Atul mate"="Atule mate",
-                                     "Loligo chinensis"="Uroteuthis chinensis",
-                                     "Loligo duvauceli"="Uroteuthis duvaucelii",
-                                     "Lutanus lineolatus"="Lutjanus lutjanus",
-                                     "Sepia aculenta"="Sepia aculeata",
-                                     "Scolopsis taeniopterus"="Scolopsis taenioptera")))
-unique(er_long$sci_name)[!unique(er_long$sci_name) %in% species$sci_name]
-
-# Format SAUP data
-rw_long <- c_rw %>% 
-  rename(year=Year, sci_name=TaxonName, comm_name=CommonName, fleet=FleetGearName, 
-         c_rep=IndReported, c_iuu=IndIUU, c_dis=IndDiscards, 
-         c_rep1=NIndReported, c_iuu1=NIndIUU, c_dis1=NIndDiscards) %>% 
-  select(fleet, comm_name, sci_name, year, c_rep:c_dis1) %>% 
-  arrange(fleet, comm_name, year)
-sort(unique(rw_long$comm_name))
-
-# Merge data
-data <- fao_long %>% 
-  left_join(select(species, comm_name, sci_name), by="comm_name") %>% 
-  select(comm_name, sci_name, year, catch) %>% 
-  left_join(er_long, by=c("year", "sci_name")) %>% 
-  mutate(catch_thous=catch / 1000)
-
-# Check completeness
-freeR::complete(data)
-
-sort(unique(fao_long$comm_name))
-
-
-# Catch by fleet
-################################################################################
-
-# Summarize trawl fishery
-trawl_spp <- rw_long %>% 
-  filter(fleet=="Trawl" & year>2005) %>% 
-  group_by(comm_name, sci_name) %>% 
-  summarize(c_avg=mean(c_rep)) %>% 
-  ungroup() %>% 
-  mutate(c_perc=c_avg/sum(c_avg)*100,
-         name_format=paste0(comm_name, " (", sci_name, ")"),
-         c_format=paste0(round(c_avg,1), " / ", round(c_perc, 1), "%")) %>%
-  select(name_format, comm_name, sci_name, c_avg, c_perc, c_format) %>% 
-  arrange(desc(c_perc))
-
-# Export table
-write.csv(trawl_spp, file.path(tabledir, "TableX_GoT_trawl_fishery_species.csv"), row.names=F)
 
 # Visualize data
 ################################################################################
 
-
-fleet_spp <- rw_long %>% 
-  group_by(fleet, comm_name) %>% 
-  summarize(tc_avg=mean(c_rep)) %>% 
-  arrange(fleet, desc(tc_avg))
-
-ggplot(rw_long, aes(x = year, y = c_rep, colour = comm_name)) +
-  labs(y="Catch", x="") +
-  geom_area(aes(colour = comm_name, fill=comm_name), position = 'stack') +
-  facet_wrap(~ fleet, ncol=4)
-
-ggplot(er_long, aes(x = year, y = er)) +
-  geom_line() +
-  facet_wrap(~ sci_name, ncol=4)
-
-# Visualize data
-################################################################################
+# Species
+species <- out$stocks
 
 # Setup figure
-figname <- "FigX_GOT_predictions.png"
-png(file.path(plotdir, figname), width=6.5, height=5, units="in", res=600)
-species <- c("Blue swimming crab", "Bigeye scad", "Largehead hairtail")
+figname <- "Fig6_GOT_predictions.png"
+png(file.path(plotdir, figname), width=6.5, height=6.5, units="in", res=600)
+par(mfcol=c(4, length(species)), mar=c(3,3,0.5,0.5), oma=c(0,2,1,0), mgp=c(3,0.8,0), xpd=NA)
 
 # Loop through species
-par(mfcol=c(3, length(species)), mar=c(3,3,0.5,0.5), oma=c(0,3,0,0), mgp=c(3.5,0.8,0), xpd=NA)
 for(i in 1:length(species)){
+  
+  # Species
+  spp <- species[i]
+  yrs <- out$yrs
+  yr1 <- freeR::floor1(min(yrs),5)
+  yr2 <- freeR::ceiling1(max(yrs),5)
+  
+  # Extract stuff
+  ids <- out$id_try
+  rs <- out$r_try[,i]
+  ks <- out$k_try[,i]
+  id_rk_viable <- out$id_rk_v[[i]]
+  b_viable <- out$b_v[[i]]
+  bbmsy_viable <- out$bbmsy_v[[i]]
+  er_viable <- out$er_v[[i]]
+  s1_priors <- out$s1_priors
+  s2_priors <-out$s2_priors
+  r_priors <- out$r_priors
+  k_priors <- out$k_priors
+  er_vv <- out$er_vv[[i]]
+  bbmsy_vv <- out$bbmsy_vv[[i]]
+  bbmsy_vv_median <- out$bbmsy_vv_median[[i]]
+  top_corr <- out$top_corr
+  
+  # Plot catch
+  #############################################
   
   # Plot catch
   ylabel <- ifelse(i==1, "Catch (1000s mt)", "")
-  sdata <- filter(data, comm_name==species[i])
-  plot(catch ~ year, sdata, bty="n", type="l", las=2, xlab="", ylab=ylabel)
+  c <- catch_w[,1+i]/1000
+  cmax <- freeR::ceiling1(max(c),5)
+  plot(x=yrs, y=c, bty="n", type="l", las=2, cex.lab=1.2, main=spp,
+       xlim=c(yr1, yr2), ylim=c(0, cmax), xlab="", ylab=ylabel)
+  
+  
+  # Plot r/k pairs
+  #############################################
+  
+  # Plot r/k pairs
+  ylabel <- ifelse(i==1, "Carring capacity, K", "")
+  plot(ks/1000 ~ rs, log="xy", type="n", bty="n", las=1, pch=15, col="gray80", cex.lab=1.2,
+       xlim=r_priors[i,], ylim=k_priors[i,]/1000,
+       # xlim=c(0.01,1.2), ylim=c(0.1, k_priors[i,2]/1000),
+       xlab="", ylab=ylabel)
+  if(i==2){mtext("Intrinsic growth rate, r", side=1, adj=0.5, cex=0.75, line=2)}
+  
+  # Add viable r/k pairs
+  # Potentially reduce this to unique r/k pairs
+  # There could be redundancy when evaluating multiple IDs
+  points(id_rk_viable$r, id_rk_viable$k/1000, pch=15, col="grey70")
+  
+  # Add most highly correlated pairs
+  id_rk_v_ind <- unlist(top_corr[,paste0("index", i)])
+  rk_corr <- subset(id_rk_viable, index %in% id_rk_v_ind)
+  points(x=rk_corr$r, y=rk_corr$k/1000, pch=15, col=freeR::tcolor("darkorange", 0.6))
+
+  # Plot status estimate
+  #############################################
+  
+  # Plot BBMSY trajectories
+  ylabel <- ifelse(i==1, expression("B/B"["MSY"]), "")
+  ymax <- freeR::ceiling1(max(bbmsy_viable, na.rm=T), 0.5)
+  plot(bbmsy_viable[,1] ~ yrs, type="n", bty="n", las=2, cex.lab=1.2,
+       xlim=c(yr1, yr2), ylim=c(0, ymax), xlab="", ylab=ylabel)
+  for(k in 1:ncol(bbmsy_viable)){lines(x=yrs, y=bbmsy_viable[,k], col="grey70")}
+  for(k in 1:ncol(bbmsy_vv)){lines(x=yrs, y=bbmsy_vv[,k], col=freeR::tcolor("darkorange", 0.6))}
+  lines(x=yrs, y=bbmsy_vv_median, lwd=1.5, col="black")
+  lines(x=c(yr1, yr2), y=c(0.5, 0.5), lty=3)
+  lines(x=yrs, y=apply(bbmsy_viable,1,median), lwd=1.5, lty=3, col="green")
   
   # Plot exploitation rate
-  ylabel <- ifelse(i==1, "Exploitation rate", "")
-  plot(er ~ year, sdata, bty="n", type="l", las=2, xlab="", ylab=ylabel, ylim=c(0,1))
+  #############################################
   
-  # Plot status estimate
-  ylabel <- ifelse(i==1, "B/BMSY", "")
-  plot(er ~ year, sdata, bty="n", type="n", las=2, xlab="", ylab=ylabel, ylim=c(0,1))
+  # Plot exploitation trajectories
+  ylabel <- ifelse(i==1, "Exploitation rate", "")
+  ermax <- freeR::ceiling1(max(er_viable, na.rm=T), 0.5)
+  plot(er_viable[,1] ~ yrs, type="n", bty="n", las=2, cex.lab=1.2,
+       xlim=c(yr1, yr2), ylim=c(0, ymax), xlab="", ylab=ylabel)
+  for(k in 1:ncol(er_viable)){lines(x=yrs, y=er_viable[,k], col="grey80")}
+  for(k in 1:ncol(er_vv)){lines(x=yrs, y=er_vv[,k], col=freeR::tcolor("darkorange", 0.6))}
+  
+  # Add observed ER
+  er <- subset(catch, comm_name==spp & year%in%1995:2015)
+  lines(x=er$year, y=er$er, lwd=1.3, col="red")
   
   
 }
