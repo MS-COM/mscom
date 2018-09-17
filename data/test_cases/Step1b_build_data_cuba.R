@@ -38,7 +38,7 @@ data <- data_orig %>%
   arrange(comm_name, year)
 
 # Check scientific names
-freeR::check_species(unique(data$sci_name))
+freeR::suggest_names(unique(data$sci_name))
 
 # Summarize catch
 catch_sum <- data %>% 
