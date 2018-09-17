@@ -38,9 +38,10 @@ species <- spp %>%
   select(comm_name, sci_name, sci_name_orig) %>% 
   mutate(sci_name=ifelse(is.na(sci_name), sci_name_orig, sci_name),
          sci_name=stringr::str_trim(sci_name), 
+         sci_name=revalue(sci_name, c("Selar crumenopthalmus"="Selar crumenophthalmus")),
          comm_name=stringr::str_trim(comm_name)) %>% 
   rbind(c("Monocle breams", rep("Scolopsis spp.", 2)))
-sort(unique(species$sci_name))
+check_species(species$sci_name)
 
 # Format FAO catch data
 fao_long <- c_fao_t %>% 
