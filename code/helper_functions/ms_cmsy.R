@@ -1,114 +1,144 @@
 
 ################################################################################
-# cMSY priors (Froese et al. 2017)
+# MS-cMSY priors
 ################################################################################
 
-# Calculate r prior
-r_priors_cmsy <- function(res){
-  for(i in 1:length(res)){
-    if(res[i]=="High"){r_prior <- c(0.6,1.5)}
-    if(res[i]=="Medium"){r_prior <- c(0.2,0.8)}
-    if(res[i]=="Low"){r_prior <- c(0.05,0.5)}
-    if(res[i]=="Very low"){r_prior <- c(0.015,0.1)}
-    if(i==1){r_priors <- r_prior}else{r_priors <- rbind(r_priors, r_prior)}
-  }
-  colnames(r_priors) <- c("r_lo", "r_hi")
-  rownames(r_priors) <- NULL
-  return(r_priors)
-}
-
-# Calculate k priors
-k_priors_cmsy <- function(C_mat){
-  cmax <- apply(C_mat, 2, max)
-  k_lo <- cmax
-  k_hi <- cmax * 50
-  k_priors <- cbind(k_lo=k_lo, k_hi=k_hi)
-  return(k_priors)
-}
-
-# Calculate initial year depletion prior
-sat1_priors_cmsy <- function(yrs, nstocks){
-  nyr <- length(yrs)
-  if(nyr>50){
-    s1_priors <- cbind(s1_lo=rep(0.7, nstocks), s1_hi=rep(1.0, nstocks))
-  }else{
-    s1_priors <- cbind(s1_lo=rep(0.4, nstocks), s1_hi=rep(1.0, nstocks))
-  }
-}
-
-# Calculate final year depletion prior
-# >0.8 - 0.4-0.8
-# 0.5-0.8 - 0.2-0.6
-# <0.5 - 0.01-0.04
-sat2_priors_cmsy <- function(C_mat){
-  c_ends <- C_mat[nrow(C_mat),]
-  c_maxs <- apply(C_mat, 2, max)
-  c_ratios <- c_ends / c_maxs
-  b_catgs <- cut(c_ratios, breaks=c(0,0.05, 0.15, 0.35, 0.5, 0.8, 1),
-                 labels=c("very very very low", "very very low", "very low", "low", "medium", "high"))
-  s_prior_key <- matrix(data=c(0.01, 0.1, # very very very low
-                                0.01, 0.2, # very very low
-                                0.01, 0.3, # very low
-                                0.01, 0.4, # low
-                                0.2, 0.6, # medium
-                                0.4, 0.8), # high
-                         ncol=2, byrow=T, dimnames=list(NULL, c("s_lo", "s_hi")))
-  s2_priors <- s_prior_key[b_catgs,]
-  return(s2_priors)
-}
-
-
-################################################################################
-# MS-cMSY priors (present study)
-################################################################################
+# Read r priors by family
+r_vals_fam <- read.csv("data/priors/r_priors_by_family.csv", as.is=T)
 
 # R priors
-r_priors <- function(res){
-  for(i in 1:length(res)){
-    if(res[i]=="High"){r_prior <- c(0.5, 1.25)}
-    if(res[i]=="Medium"){r_prior <- c(0.01, 1.0)}
-    if(res[i]=="Low"){r_prior <- c(0.01, 0.5)}
-    if(res[i]=="Very low"){r_prior <- c(0.01, 0.15)}
-    if(i==1){r_priors <- r_prior}else{r_priors <- rbind(r_priors, r_prior)}
+calc_r_priors <- function(key){
+  r_priors <- key %>% 
+    select(stock, family, resilience) %>% 
+    left_join(r_vals_fam, by="family") %>% 
+    mutate(resilience=factor(resilience, levels=c("Very low", "Low", "Medium", "High")),
+           r_lo=c(0.01, 0.01, 0.01, 0.50)[resilience],
+           r_hi=c(0.15, 0.50, 1.00, 1.25)[resilience],
+           use=ifelse(!is.na(r_mu), "family", "resilience"))
+  # Print message if resilience priors are used
+  if(any(r_priors$use=="resilience")){
+    stocks_with_res_r <- r_priors$stock[r_priors$use=="resilience"]
+    print(paste("r priors for the following stocks are based on resilience instead of family: ", paste( stocks_with_res_r, collapse=", ")))
   }
-  colnames(r_priors) <- c("r_lo", "r_hi")
-  rownames(r_priors) <- NULL
   return(r_priors)
 }
 
 # K priors
-k_priors <- function(C_mat){
-  cmax <- apply(C_mat, 2, max)
-  k_lo <- cmax * 2
-  k_hi <- cmax * 50
-  k_priors <- cbind(k_lo=k_lo, k_hi=k_hi)
+calc_k_priors <- function(data){
+  k_priors <- data %>% 
+    group_by(stock) %>% 
+    summarize(cmax=max(catch),
+              k_lo=cmax*2,
+              k_hi=cmax*25)
   return(k_priors)
 }
 
 # Initial saturation priors
-# Test: plot(x=1900:2020, y=sapply(1900:2020, function(x) sat1_priors(yrs=min(x):2020, nstocks=1))[1,], ylim=c(0,2), ylab="Saturation", xlab="")
-sat1_priors <- function(yrs, nstocks){
-  yr1 <- min(yrs)
-  s1_hi <- 1
-  if(yr1<=1945){s1_lo <- 0.8}
-  if(yr1>1945 & yr1<1980){s1_lo <- 0.8+(0.1-0.8)/(1980-1945)*(yr1-1945)}
-  if(yr1>=1980){s1_lo <- 0.1}
-  s1_lo1 <- rep(s1_lo, nstocks)
-  s1_hi1 <- rep(s1_hi, nstocks)
-  s1_priors <- cbind(s1_lo=s1_lo1, s1_hi=s1_hi1)
+calc_sat1_priors <- function(data){
+  s1_priors <- data %>% 
+    group_by(stock) %>% 
+    summarize(yr1=min(year),
+              s1_lo=ifelse(yr1<=1945, 0.8, NA),
+              s1_lo=ifelse(yr1>1945 & yr1<1980, 0.8+(0.1-0.8)/(1980-1945)*(yr1-1945), s1_lo),
+              s1_lo=ifelse(yr1>=1980, 0.1, s1_lo),
+              s1_hi=1)
   return(s1_priors)
 }
 
 # Final saturation priors
-# plot(x=seq(0,1,0.1), y=0+0.4*seq(0,1,0.1), ylim=c(0,2), type="l"); lines(x=seq(0,1,0.1), y=0.8+0.2*seq(0,1,0.1))
-sat2_priors <- function(C_mat){
-  c_ends <- C_mat[nrow(C_mat),]
-  c_maxs <- apply(C_mat, 2, max)
-  c_ratios <- c_ends / c_maxs
-  s2_lo <- 0 + 0.4*c_ratios
-  s2_hi <- 0.5 + 0.4*c_ratios
-  s2_priors <- cbind(s2_lo=s2_lo, s2_hi=s2_hi)
+calc_sat2_priors <- function(data){
+  s2_priors <- data %>% 
+    group_by(stock) %>% 
+    summarize(cfinal=catch[year==max(year)],
+              cmax=max(catch),
+              cratio=cfinal/cmax,
+              s2_lo=0 + 0.4*cratio,
+              s2_hi=0.5 + 0.4*cratio)
   return(s2_priors)
+}
+
+
+################################################################################
+# Diagnostic plots
+################################################################################
+
+# Plot viable r/k pairs
+plot_rk <- function(id_rk_viable){
+  par(mfrow=c(1,1))
+  rmin <- pmax(0.01, floor(min(id_rk_viable$r)/0.1)*0.1)
+  rmax <- ceiling(max(id_rk_viable$r)/0.1)*0.1
+  plot(k/1000 ~ r, id_rk_viable, log="xy", bty="n", las=1, pch=15,
+       xlim=c(rmin, rmax), ylim=unlist(k_prior[, c("k_lo", "k_hi")])/1000,
+       xlab="Intrinsic growth rate, r", ylab="Carrying capacity, K", col="gray80")
+}
+
+# Plot viable biomass trajectories
+plot_b <- function(b_mat_viable, yrs){
+  par(mfrow=c(1,1))
+  yr1 <- floor(min(yrs) / 10) * 10
+  yr2 <- ceiling(max(yrs) / 10) * 10
+  plot(b_mat_viable[,1]/1000 ~ yrs, type="n", bty="n", las=2, xlim=c(yr1, yr2),
+       ylim=c(0, max(b_mat_viable/1000, na.rm=T)), xlab="Year", ylab="Biomass (1000s)")
+  for(k in 1:ncol(b_mat_viable)){lines(x=yrs, y=b_mat_viable[,k]/1000, col="grey80")}
+}
+
+# Plot viable B/BMSY trajectories
+plot_bbmsy <- function(bbmsy_mat_viable, yrs){
+  par(mfrow=c(1,1))
+  yr1 <- floor(min(yrs) / 10) * 10
+  yr2 <- ceiling(max(yrs) / 10) * 10
+  plot(bbmsy_mat_viable[,1] ~ yrs, type="n", bty="n", las=2, xlim=c(yr1, yr2),
+       ylim=c(0, max(bbmsy_mat_viable, na.rm=T)), xlab="Year", ylab=expression("B/B"["MSY"]))
+  for(k in 1:ncol(bbmsy_mat_viable)){lines(x=yrs, y=bbmsy_mat_viable[,k], col="grey80")}
+  lines(x=c(yr1, yr2), y=c(0.5, 0.5), lty=3)
+}
+
+# Plot viable exploitation trajectories
+plot_er <- function(er_mat_viable, yrs){
+  par(mfrow=c(1,1))
+  yr1 <- floor(min(yrs) / 10) * 10
+  yr2 <- ceiling(max(yrs) / 10) * 10
+  plot(er_mat_viable[,1] ~ yrs, type="n", bty="n", las=2, xlim=c(yr1, yr2),
+       ylim=c(0, max(er_mat_viable)), xlab="Year", ylab="Exploitation rate")
+  for(k in 1:ncol(er_mat_viable)){lines(x=yrs, y=er_mat_viable[,k], col="grey80")}
+}
+
+# Plot viable U/UMSY trajectories
+plot_uumsy <- function(uumsy_mat_viable, yrs){
+  par(mfrow=c(1,1))
+  yr1 <- floor(min(yrs) / 10) * 10
+  yr2 <- ceiling(max(yrs) / 10) * 10
+  plot(uumsy_mat_viable[,1] ~ yrs, type="n", bty="n", las=2, xlim=c(yr1, yr2),
+       ylim=c(0, max(uumsy_mat_viable, na.rm=T)), xlab="Year", ylab=expression("U/U"["MSY"]))
+  for(k in 1:ncol(uumsy_mat_viable)){lines(x=yrs, y=uumsy_mat_viable[,k], col="grey80")}
+  lines(x=c(yr1, yr2), y=c(1, 1), lty=3)
+}
+
+################################################################################
+# Helper functions
+################################################################################
+
+# Look up families
+get_family <- function(species){
+  
+  # FB/SLB taxa key
+  taxa_key_fb <- rfishbase::load_taxa(server="https://fishbase.ropensci.org") %>% mutate(type="fish") %>% select(type, everything())
+  taxa_key_slb <- rfishbase::sealifebase %>% mutate(type="invert") %>% select(type, everything())
+  taxa_key <-  taxa_key_fb %>%
+    bind_rows(taxa_key_slb) %>%
+    setNames(tolower(names(.))) %>%
+    mutate(sciname=paste(genus, species)) %>%
+    select(type, class, order, family, genus, species, sciname) %>%
+    unique()
+  
+  # Build family key
+  spp <- unique(species)
+  family_key <- taxa_key %>%
+    filter(sciname %in% spp) %>% 
+    select(sciname, family) %>% 
+    rename(species=sciname)
+  return(family_key)
+  
 }
 
 
@@ -117,35 +147,65 @@ sat2_priors <- function(C_mat){
 ################################################################################
 
 # Multi-species catch-only model
-# For testing: catch<-catch; stocks<-species; res<-res; id_fixed <- F; npairs <- 1000
-ms_cmsy <- function(catch, stocks, res, id_fixed, npairs=10000){
+ms_cmsy <- function(data, key, npairs=5000){
   
-  # Extract yrs/catch
-  yrs <- catch$year
-  C_mat <- as.matrix(select(catch, -year))
+  # Alphabetize
+  key <- arrange(key, stock)
+  data <- arrange(data, stock, year)
   
-  # Time series info
-  nyrs <- length(yrs)
+  # Get info
+  stocks <- key$stock
   nstocks <- length(stocks)
   
+  # Check data inputs
+  ###################################################
+  
+  # Data must contain the following columns: stock, year, catch
+  if( any(!c("stock", "year", "catch")%in%colnames(data))){
+    stop("The 'data' object must include the following column names: stock, year, catch")}
+  
+  # Key must contain the following columns: stock, family, resilience, id_fixed
+  if( any(!c("stock", "family", "resilience", "id_fixed")%in%colnames(key))){
+    stop("The 'key' object must include the following column names: stock, family, resilience, id_fixed")}
+  
+  # Check resilience values
+  if(any(!key$resilience%in%c("Very low", "Low", "Medium", "High", NA))){
+    stop("Resilience values must be one of the following: Very low, Low, Medium, High, NA")}
+  
+  # Catch time series must be continuous (i.e., no NAs between 1st and last year)
+  cstats <- data %>% 
+    group_by(stock) %>% 
+    summarize(yr1=min(year), 
+              yr2=max(year),
+              nyr=n(),
+              nyr_check=length(yr1:yr2),
+              pass=nyr==nyr_check)
+  fail <- cstats$stock[cstats$pass==F]
+  if(length(fail)>0){
+    stop(paste("The following stocks have non-continuous catch time series (i.e, NAs in catch data):", paste(fail, collapse=", ")))
+  }
+  
+  # Must be catch data for stocks in the key
+  key_stocks <- key$stock
+  data_stocks <- sort(unique(data$stock))
+  if(any(!key_stocks%in%data_stocks)){stop("There are stocks in the 'key' without catch data.")}
+  if(any(!data_stocks%in%key_stocks)){stop("There are stocks with catch data but missing from the 'key'.")}
+  
+  # Calculate priors
+  ###################################################
+  
   # Calculate r and k priors
-  # R prior based on resilience; K prior based on max catch and r prior
-  r_priors <- r_priors(res)
-  k_priors <- k_priors(C_mat)
-  r_priors_ln <- log(r_priors)
-  k_priors_ln <- log(k_priors)
+  r_priors <- calc_r_priors(key)
+  k_priors <- calc_k_priors(data)
   
   # Calculate saturation priors
-  s1_priors <- sat1_priors(yrs, nstocks)
-  s2_priors <- sat2_priors(C_mat)
-
-  # Randomly sample r-k pairs in log-space
-  npairs <- npairs
-  ri <- sapply(1:nstocks, function(x) exp(runif(npairs, r_priors_ln[x,1], r_priors_ln[x,2])))
-  ki <- sapply(1:nstocks, function(x) exp(runif(npairs, k_priors_ln[x,1], k_priors_ln[x,2])))
+  s1_priors <- calc_sat1_priors(data)
+  s2_priors <- calc_sat2_priors(data)
   
-  # Lists to hold viable r/k pairs and associated biomass/exploitation trajectories
-  id_rk_try <- list()
+  # Simulate biomass trajectories
+  ###################################################
+  
+  # Lists to hold viable combos and associated biomass/exploitation trajectories
   id_rk_v <- list()
   b_mats_v <- list()
   bbmsy_mats_v <- list()
@@ -155,39 +215,53 @@ ms_cmsy <- function(catch, stocks, res, id_fixed, npairs=10000){
   for(i in 1:nstocks){
     
     # Get info
-    stock <- stocks[i]
-    c_vec <- C_mat[,i]
-    # print(stock)
+    stock_i <- stocks[i]
+    sdata <- filter(data, stock==stock_i)
+    sinfo <- filter(key, stock==stock_i)
+    yrs <- sdata$year
+    nyrs <- length(yrs)
+    c_vec <- sdata$catch
     
-    # Initial depletions to evaluate
+    # Get priors
+    r_prior <- filter(r_priors, stock==stock_i)
+    k_prior <- filter(k_priors, stock==stock_i)
+    s1_prior <- filter(s1_priors, stock==stock_i)
+    s2_prior <- filter(s2_priors, stock==stock_i)
+    
+    # Get initial depletions (IDs) to evaluate
+    id_fixed <- sinfo$id_fixed
     if(id_fixed==T){
       ids <- 1
     }else{
-      s1_prior <- s1_priors[i,]
-      ids <- seq(s1_prior[1], s1_prior[2], 0.1)
+      ids <- seq(s1_prior$s1_lo, s1_prior$s1_hi, 0.1)
     }
     
     # Get r/k pairs to evaluate
-    rs <- ri[,i]
-    ks <- ki[,i]
+    r_prior_method <- r_prior$use
+    if(r_prior_method=="family"){
+      rs <- rlnorm(npairs, meanlog=log(r_prior$r_mu), sdlog=r_prior$r_sd)
+    }else{
+      rs <- exp(runif(npairs, log(r_prior$r_lo), log(r_prior$r_hi)))
+    }
+    ks <- exp(runif(npairs, log(k_prior$k_lo), log(k_prior$k_hi)))
     rk_pairs <- cbind(r=rs, k=ks, viable=rep(NA, npairs))
     
     # Build ID/r/k combos to evaluate
     id_rk_combos <- as.data.frame(do.call("rbind",
                        lapply(ids, function(x) cbind(id=rep(x, nrow(rk_pairs)), rk_pairs))))
     
-    # Loop through r/k pairs to see if viable
-    p <- 0.2
-    sigmaP <- 0.1
-    b_mat <- matrix(data=NA, nrow=nyrs, ncol=nrow(id_rk_combos))
+    # Loop through ID/r/k combos to see if they produce viable biomass trajectories
+    p <- 0.2 # Pella-Tomlinson shape parameter (max growth @ 40% of carrying capacity)
+    sigmaP <- 0.1 # process error on productivity term
+    b_mat <- matrix(data=NA, nrow=nyrs, ncol=nrow(id_rk_combos), dimnames=list(yrs, 1:nrow(id_rk_combos)))
     for(j in 1:nrow(id_rk_combos)){
       id <- id_rk_combos$id[j]
       r <- id_rk_combos$r[j]
       k <- id_rk_combos$k[j]
       b_mat[1,j] <- k * id
       for(yr in 2:nyrs){
-        # b_mat[yr,j] <- b_mat[yr-1,j] +  r*b_mat[yr-1,j]/p*(1-(b_mat[yr-1,j]/k)^p) - c_vec[yr-1]
-        b_mat[yr,j] <- b_mat[yr-1,j] +  r*b_mat[yr-1,j]/p*(1-(b_mat[yr-1,j]/k)^p)*exp(rnorm(1,0,sigmaP)) - c_vec[yr-1]
+        # b_mat[yr,j] <- b_mat[yr-1,j] +  r*b_mat[yr-1,j]/p*(1-(b_mat[yr-1,j]/k)^p) - c_vec[yr-1] # without process error
+        b_mat[yr,j] <- b_mat[yr-1,j] +  r*b_mat[yr-1,j]/p*(1-(b_mat[yr-1,j]/k)^p)*exp(rnorm(1,0,sigmaP)) - c_vec[yr-1] # with process error
       }
     }
     
@@ -196,11 +270,11 @@ ms_cmsy <- function(catch, stocks, res, id_fixed, npairs=10000){
     
     # Reduce to viable r/k pairs and trajectories
     check0 <- apply(b_mat, 2, function(x) sum(x<0, na.rm=T)==0) # check B doesn't go below 0
-    s2_lo <- s2_priors[i,1]
-    s2_hi <- s2_priors[i,2]
+    s2_lo <- s2_prior$s2_lo
+    s2_hi <- s2_prior$s2_hi
     s2_vec <- s_mat[nrow(s_mat),]
     checkS <- s2_vec > s2_lo & s2_vec < s2_hi & !is.na(s2_vec) # check final yr saturation inside prior
-    viable <- check0 & checkS # merge positive biomass and fina saturation checks
+    viable <- check0 & checkS # merge positive biomass and final saturation checks
     id_rk_combos[,"viable"] <- viable
     nviable <- sum(viable)
     b_mat_viable <- b_mat[,viable]
@@ -210,32 +284,22 @@ ms_cmsy <- function(catch, stocks, res, id_fixed, npairs=10000){
     bmsy <- id_rk_viable[,"k"] * (1 / (p+1))^(1/p)
     bbmsy_mat_viable <- t(t(b_mat_viable) / bmsy)
     
-    # # Plot viable r/k pairs
-    # par(mfrow=c(1,1))
-    # plot(k ~ r, rk_pairs, log="xy", bty="n", las=1, pch=15,
-    #      xlim=r_priors[i,], ylim=k_priors[i,], xlab="r", ylab="k", col="gray80")
-    # points(rk_viable[,1], rk_viable[,2], pch=15, col="black")
-    # 
-    # # Plot viable biomass trajectories
-    # plot(b_mat_viable[,1] ~ yrs, type="n", bty="n", las=1,
-    #      ylim=c(0, max(b_mat_viable, na.rm=T)), xlab="Year", ylab="Biomass")
-    # for(k in 1:ncol(b_mat_viable)){lines(x=yrs, y=b_mat_viable[,k], col="grey80")}
-    #
-    # # Plot viable B/BMSY trajectories
-    # plot(bbmsy_mat_viable[,1] ~ yrs, type="n", bty="n", las=1,
-    #      ylim=c(0, max(bbmsy_mat_viable, na.rm=T)), xlab="Year", ylab="B/BMSY")
-    # for(k in 1:ncol(bbmsy_mat_viable)){lines(x=yrs, y=bbmsy_mat_viable[,k], col="grey80")}
-
     # Calculate exploitation rate
-    # I name the rows and columns so that I can validate covariance matrix below
+    # I name the rows and columns so that I can validate the covariance matrix below
     er_mat_viable <- c_vec / b_mat_viable
     rownames(er_mat_viable) <- yrs
     colnames(er_mat_viable) <- paste0(LETTERS[i], 1:ncol(er_mat_viable))
     
-    # Plot viable exploitation trajectories
-    # plot(er_mat_viable[,1] ~ yrs, type="n", bty="n", las=1,
-    #      ylim=c(0, 1), xlab="Year", ylab="Exploitation rate")
-    # for(k in 1:ncol(er_mat_viable)){lines(x=yrs, y=er_mat_viable[,k], col="grey80")}
+    # Derive U/UMSY
+    umsy <- id_rk_viable[,"r"] / p * (1-1/(p+1))
+    uumsy_mat_viable <- t(t(er_mat_viable) / umsy)
+    
+    # Diagnostic plots
+    # plot_rk(id_rk_viable)
+    # plot_b(b_mat_viable, yrs)
+    # plot_bbmsy(bbmsy_mat_viable, yrs)
+    # plot_er(er_mat_viable, yrs)
+    # plot_uumsy(uumsy_mat_viable, yrs)
     
     # Record results
     id_rk_v[[i]] <- id_rk_viable
@@ -255,8 +319,12 @@ ms_cmsy <- function(catch, stocks, res, id_fixed, npairs=10000){
   starts <- c(0,finishes[1:(length(finishes)-1)])+1
   indices <- cbind(starts, finishes)
   
+  # Reduce viable effort time series to period of time overlap
+  yrs_overlap <- na.omit(dcast(data, year ~ stock, value.var="catch"))$year
+  er_mats_v_overlap <- sapply(er_mats_v, function(x) x[rownames(x)%in%yrs_overlap,])
+  
   # Merge viable effort time series for all stocks
-  er_v_all <- t(do.call("cbind", er_mats_v)) # transposed so that G=F*Ft works
+  er_v_all <- t(do.call("cbind", er_mats_v_overlap)) # transposed so that G=F*Ft works
   
   # Calculate covariance matrix then correlation matrix
   cov_mat <- er_v_all %*% t(er_v_all)
@@ -282,10 +350,12 @@ ms_cmsy <- function(catch, stocks, res, id_fixed, npairs=10000){
   spp <- 1:nstocks # each species gets a number
   spp_vec <- rep(1:nstocks, id_rk_v_n_all) # indexes species identity (1, 2, or 3 etc)
   spp_ind <- unlist(sapply(id_rk_v_n_all, function(x) 1:x)) # indexes index of r/k pair
-  hi_corr_mat <- matrix(nrow=nrow(corr_mat), ncol=1+nstocks+nstocks, data=NA, 
-                        dimnames=list(NULL, c("row", 
-                                              paste0("index", spp), 
-                                              paste0("corr", apply(combn(1:3, 2),2, function(x) paste(x, collapse=""))))))
+  # I create the column names first to use as a method for setting up the number of columns
+  hi_corr_mat_cols <- c("row", 
+                        paste0("index", spp), 
+                        paste0("corr", apply(combn(1:nstocks, 2),2, function(x) paste(x, collapse=""))))
+  hi_corr_mat <- matrix(nrow=nrow(corr_mat), ncol=length(hi_corr_mat_cols), data=NA, 
+                        dimnames=list(NULL, hi_corr_mat_cols))
   hi_corr_mat[,"row"] <- 1:nrow(hi_corr_mat)
   
   # Loop through rows of correlation matix and identify highest correlation in each row-block
@@ -310,9 +380,14 @@ ms_cmsy <- function(catch, stocks, res, id_fixed, npairs=10000){
     
   }
   
-  # Average correlations
+  # Average correlations if >2 stocks
+  # If there are 2 stocks, there is only 1 correlation
   corr_cols <- colnames(hi_corr_mat)[grepl("corr", colnames(hi_corr_mat))]
-  corr_avgs <- apply(hi_corr_mat[,corr_cols ], 1, mean, na.rm=T) 
+  if(nstocks==2){
+    corr_avgs <- hi_corr_mat[,corr_cols ]
+  }else{
+    corr_avgs <- apply(hi_corr_mat[,corr_cols ], 1, mean, na.rm=T) 
+  }
   hi_corr_mat <- cbind(hi_corr_mat, corr_avg=corr_avgs)
   
   # Mark viable r/k pairs that show high correlation
@@ -350,10 +425,10 @@ ms_cmsy <- function(catch, stocks, res, id_fixed, npairs=10000){
   
   # Get biomass trajectories of top 10%
   # (also sneak in calculation of cMSY prediction)
-  bbmsy_v_meds <- NULL
-  er_mats_vv <- NULL
-  bbmsy_mats_vv <- NULL
-  bbmsy_vv_meds <- NULL
+  bbmsy_v_meds <- list()
+  er_mats_vv <- list()
+  bbmsy_mats_vv <- list()
+  bbmsy_vv_meds <- list()
   for(i in 1:length(b_mats_v)){
     vv_index <- unlist(top_corr[,paste0("index", i)])
     er_mat_v <- er_mats_v[[i]]
@@ -367,24 +442,24 @@ ms_cmsy <- function(catch, stocks, res, id_fixed, npairs=10000){
     bbmsy_v_meds[[i]] <- bbmsy_v_med
     bbmsy_vv_meds[[i]] <- bbmsy_vv_med
   }
-
+  
   # Things to return
-  out <- list(stocks=stocks,
-              yrs=yrs,
-              r_priors=r_priors,
-              k_priors=k_priors,
+  out <- list(key=key,
+              data=data,
+              # Priors
+              r_priors=r_priors, 
+              k_priors=k_priors, 
               s1_priors=s1_priors,
               s2_priors=s2_priors,
-              id_try=ids,
-              r_try=ri, 
-              k_try=ki, 
-              id_rk_v=id_rk_v, 
+              # Viable trajectories
+              id_rk_v=id_rk_v,
               b_v=b_mats_v, 
+              er_v=er_mats_v,
               bbmsy_v=bbmsy_mats_v,
               bbmsy_v_median=bbmsy_v_meds,
-              er_v=er_mats_v,
-              er_vv=er_mats_vv,
+              # Effort-constrained trajectories
               top_corr=top_corr,
+              er_vv=er_mats_vv,
               bbmsy_vv=bbmsy_mats_vv,
               bbmsy_vv_median=bbmsy_vv_meds)
   return(out)
@@ -397,108 +472,145 @@ ms_cmsy <- function(catch, stocks, res, id_fixed, npairs=10000){
 ################################################################################
 
 # Plot MS-cMSY results
-plot_ms_cmsy <- function(out, true){
+plot_ms_cmsy <- function(output, true){
+  
+  # Extract info
+  key <- output$key
+  data <- output$data
+  stocks <- key$stock
+  nstocks <- length(stocks)
   
   # Loop through species
-  spp <- out$stocks
-  nspp <- length(spp)
-  par(mfcol=c(3,nspp), mar=c(3,4,2,1), mgp=c(2.5,0.7,0), xpd=NA)
-  for(i in 1:length(spp)){
+  par(mfcol=c(4,nstocks), mar=c(3,2,2,1), oma=c(0,2,0,0), mgp=c(2.5,0.7,0), xpd=NA)
+  for(i in 1:nstocks){
     
-    # Subset data
-    yrs <- out$yrs
-    ids <- out$id_try
-    rs <- out$r_try[,i]
-    ks <- out$k_try[,i]
-    id_rk_viable <- out$id_rk_v[[i]]
-    b_viable <- out$b_v[[i]]
-    bbmsy_viable <- out$bbmsy_v[[i]]
-    er_viable <- out$er_v[[i]]
-    s1_priors <- out$s1_priors
-    s2_priors <-out$s2_priors
-    r_priors <- out$r_priors
-    k_priors <- out$k_priors
-    er_vv <- out$er_vv[[i]]
-    bbmsy_vv <- out$bbmsy_vv[[i]]
-    bbmsy_vv_median <- out$bbmsy_vv_median[[i]]
-    top_corr <- out$top_corr
+    # Stock
+    stock_i <- stocks[i]
+    
+    # Year info
+    #########################################
+    
+    # Year info
+    sdata <- filter(data, stock==stock_i)
+    yrs <- sdata$year
+    yr1 <- floor(min(yrs) / 10) * 10
+    yr2 <- ceiling(max(yrs) / 10) * 10
+    
+    # Plot catch
+    #########################################
+    
+    # Plot catch
+    ymax <- ceiling(max(sdata$catch/1000) / 10) * 10
+    ylabel <- ifelse(i==1, "Catch (1000s)", "")
+    plot(catch/1000 ~ year, sdata, type="l", bty="n", las=2, xaxt="n",
+         xlim=c(yr1, yr2), ylim=c(0, ymax), xlab="", ylab=ylabel, main=stock_i)
+    axis(side=1, at=seq(yr1, yr2, 10), las=2)
     
     # Plot r/k pairs
     #########################################
     
-    # Plot r/k pairs
-    plot(ks ~ rs, log="xy", type="n", bty="n", las=1, pch=15, col="gray80", xpd=NA,
-         xlim=r_priors[i,], ylim=k_priors[i,], xlab="r", ylab="k", main=spp[i])
+    # Extract r/k info
+    id_rk_v <- output$id_rk_v[[i]]
+    id_rk_v$k <-   id_rk_v$k/1000
+    top_corr <- output$top_corr
+    r_prior <- unlist(select(filter(output$r_priors, stock==stock_i), r_lo, r_hi))
+    k_prior <- unlist(select(filter(output$k_priors, stock==stock_i), k_lo, k_hi)) / 1000
     
-    # Add viable r/k pairs
+    # Plot viable r/k pairs
     # Potentially reduce this to unique r/k pairs
     # There could be redundancy when evaluating multiple IDs
-    points(id_rk_viable$r, id_rk_viable$k, pch=15, col="grey70")
-    
+    rmin <- floor(min(id_rk_v$r) / 0.1) * 0.1
+    rmax <- ceiling(max(id_rk_v$r) / 0.1) * 0.1
+    kmin <- floor(min(id_rk_v$k) / 50) * 50
+    kmax <- ceiling(max(id_rk_v$k) / 50) * 50
+    ylabel <- ifelse(i==1, "Carrying capacity, K (1000s)", "")
+    plot(k ~ r, id_rk_v, bty="n", las=1, pch=15, col="gray70",
+         xlim=c(rmin, rmax), ylim=c(kmin, kmax), 
+         xlab="Intrinsic growth rate, r", ylab=ylabel)
+
     # Add most highly correlated pairs
     id_rk_v_ind <- unlist(top_corr[,paste0("index", i)])
-    rk_corr <- subset(id_rk_viable, index %in% id_rk_v_ind)
+    rk_corr <- subset(id_rk_v, index %in% id_rk_v_ind)
     points(x=rk_corr$r, y=rk_corr$k, pch=15, col=freeR::tcolor("darkorange", 0.6))
-    
+
     # # Add most common highly correlated pair
     # rk_mode <- mode(rk_v_ind)
     # rk_corr <- subset(rk_viable, index==rk_mode)
     # points(x=rk_corr$r, y=rk_corr$k, pch=15, col="green")
-    
+
     # # Add repeatedly highly correlated r/k pairs
     # rk_corr <- subset(rk_viable, ncorr>=5)
     # points(x=rk_corr$r, y=rk_corr$k, pch=15, col="darkorange")
-  
-    # Add true value
-    points(x=true$r[i], y=true$k[i], pch=15, col="red", cex=1.3)
-    
+
     # Add legend
     if(i==1){
-      legend("bottomright", bty="n", pch=15, pt.cex=1.3, cex=0.9, 
-             col=c("grey70", "darkorange", "red"),
-             legend=c("Viable", "Effort correlated", "True value"))
+      legend("topright", bty="n", pch=15, pt.cex=1.3, cex=0.9,
+             col=c("grey70", "darkorange"),
+             legend=c("Viable", "Effort constrained"))
     }
     
-    # Plot BBMSY trajectories
+    # Plot B/BMSY trajectories
     #########################################
     
-    # Plot BBMSY trajectories
-    ymax <- freeR::ceiling1(max(bbmsy_viable, true$bbmsy_ts[,i+1], na.rm=T), 0.5)
-    plot(bbmsy_viable[,1] ~ yrs, type="n", bty="n", las=2,
-         ylim=c(0, ymax), xlab="", ylab=expression("B/B"["MSY"]))
-    for(k in 1:ncol(bbmsy_viable)){lines(x=yrs, y=bbmsy_viable[,k], col="grey70")}
+    # Extract B/BMSY trajectories
+    bbmsy_v <- output$bbmsy_v[[i]]
+    bbmsy_vv <- output$bbmsy_vv[[i]]
+    bbmsy_v_median <- output$bbmsy_v_median[[i]]
+    bbmsy_vv_median <- output$bbmsy_vv_median[[i]]
+    
+    # Plot B/BMSY trajectories
+    if(!missing(true)){
+      ymax <- ceiling(max(bbmsy_v, true$ts$bbmsy, na.rm=T)/0.5) * 0.5
+    }else{
+      ymax <- ceiling(max(bbmsy_v, na.rm=T)/0.5) * 0.5
+    }
+    ylabel <- ifelse(i==1, expression("B/B"["MSY"]), "")
+    plot(bbmsy_v[,1] ~ yrs, type="n", bty="n", las=2, xaxt="n",
+         xlim=c(yr1, yr2), ylim=c(0, ymax), xlab="", ylab=ylabel)
+    axis(side=1, at=seq(yr1, yr2, 10), las=2)
+    # Viable trajectories
+    for(k in 1:ncol(bbmsy_v)){lines(x=yrs, y=bbmsy_v[,k], col="grey70")}
+    # Effort constrained trajectories
     for(k in 1:ncol(bbmsy_vv)){lines(x=yrs, y=bbmsy_vv[,k], col=freeR::tcolor("darkorange", 0.6))}
-    lines(x=yrs, y=bbmsy_vv_median, lwd=1.5, col="black")
-    lines(x=yrs, y=true$bbmsy_ts[,i+1], lwd=1.5, col="red", lty=3) # true B/BMSY
-    lines(x=c(0, max(yrs)), y=c(0.5, 0.5), lty=3)
-    lines(x=yrs, y=apply(bbmsy_viable,1,median), lwd=1.5, lty=3, col="green")
+    lines(x=yrs, y=bbmsy_vv_median, lwd=1.5, col="brown")
+    # cMSY trajectory
+    lines(x=yrs, y=bbmsy_v_median, lwd=1.2, col="black")
+    # Overfishing line
+    lines(x=c(yr1, yr2), y=c(0.5, 0.5), lty=3)
+    lines(x=c(yr1, yr2), y=c(1, 1), lty=2)
     
-    # Add legend
-    if(i==1){
-      legend("bottomright", bty="n", lty=c(1,1,3), lwd=1.5, cex=0.9, 
-             col=c("grey70", "darkorange", "red"),
-             legend=c("Viable", "Effort correlated", "True value"))
+    # Add truth if available
+    if(!missing(true)){
+      ts <- filter(true$ts, stock==stock_i)
+      lines(x=ts$year, y=ts$bbmsy, col="red", lwd=1.3)
     }
-    
-    # Plot biomass trajectories
-    #########################################
-    
-    # # Plot biomass trajectories
-    # plot(b_viable[,1] ~ yrs, type="n", bty="n", las=1,
-    #      ylim=c(0, max(b_viable)), xlab="Year", ylab="Biomass")
-    # for(k in 1:ncol(b_viable)){lines(x=yrs, y=b_viable[,k], col="grey80")}
-    # lines(x=yrs, y=true$b_ts[,i+1], lwd=1.5, col="red")
-    
+
     # Plot exploitation trajectories
     #########################################
     
+    # Extract ER trajectories
+    er_v <- output$er_v[[i]]
+    er_vv <- output$er_vv[[i]]
+
     # Plot exploitation trajectories
-    plot(er_viable[,1] ~ yrs, type="n", bty="n", las=2,
-         ylim=c(0, 1), xlab="", ylab="Exploitation rate")
-    for(k in 1:ncol(er_viable)){lines(x=yrs, y=er_viable[,k], col="grey80")}
+    if(!missing(true)){
+      ymax <- ceiling(max(er_v, true$ts$er, na.rm=T)/0.5) * 0.5
+    }else{
+      ymax <- ceiling(max(er_v, na.rm=T)/0.5) * 0.5
+    }
+    ylabel <- ifelse(i==1, "Exploitation rate", "")
+    plot(er_v[,1] ~ yrs, type="n", bty="n", las=2, xaxt="n",
+         xlim=c(yr1, yr2), ylim=c(0, ymax), xlab="", ylab=ylabel)
+    axis(side=1, at=seq(yr1, yr2, 10), las=2)
+    for(k in 1:ncol(er_v)){lines(x=yrs, y=er_v[,k], col="grey80")}
     for(k in 1:ncol(er_vv)){lines(x=yrs, y=er_vv[,k], col=freeR::tcolor("darkorange", 0.6))}
-    lines(x=yrs, y=true$er_ts[,i+1], lwd=1.5, col="red", lty=3)
     
+    # Add truth if available
+    if(!missing(true)){
+      ts <- filter(true$ts, stock==stock_i)
+      lines(x=ts$year, y=ts$er, col="red", lwd=1.3)
+    }
+
   }
   
   
