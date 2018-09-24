@@ -1,0 +1,21 @@
+fishery,number,comm_name,species
+pelagic longline,1,Striped marlin,Kajikia audax
+pelagic longline,2,Blue marlin,Makaira nigricans
+pelagic longline,3,Bigeye tuna,Thunnus obesus
+pelagic longline,4,Skipjack tuna,Katsuwonus pelamis
+pelagic longline,5,Albacore,Thunnus alalunga
+pelagic longline,6,Swordfish,Xiphias gladius
+pelagic longline,7,Black marlin,Istiompax indica
+pelagic longline,8,Black skipjack,Euthynnus lineatus
+pelagic longline,9,Indo-Pacific sailfish,Istiophorus platypterus
+pelagic longline,10,Shortbill spearfish,Tetrapturus angustirostris
+demersal trawl,1,American plaice,Hippoglossoides platessoides
+demersal trawl,2,Atlantic cod,Gadus morhua
+demersal trawl,3,Haddock,Melanogrammus aeglefinus
+demersal trawl,4,Winter flounder,Pseudopleuronectes americanus
+demersal trawl,5,Witch flounder,Glyptocephalus cynoglossus
+demersal trawl,6,Atlantic halibut,Hippoglossus hippoglossus
+demersal trawl,7,Atlantic pollock,Pollachius pollachius
+demersal trawl,8,Redfish,Sebastes fasciatus
+demersal trawl,9,White hake,Urophycis tenuis
+demersal trawl,10,Yellowtail flounder,Limanda ferruginea
