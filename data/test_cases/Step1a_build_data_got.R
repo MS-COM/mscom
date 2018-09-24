@@ -19,7 +19,7 @@ library(RColorBrewer)
 # Directories
 datadir <- "data/test_cases/original"
 outdir <- "data/test_cases/data"
-tabledir <- "tables"
+tabledir <- "data/test_cases/tables"
 
 # Read data
 spp <- import(file.path(datadir, "GulfThaiSpecies.xlsx"), which=1)
@@ -41,7 +41,7 @@ species <- spp %>%
          sci_name=revalue(sci_name, c("Selar crumenopthalmus"="Selar crumenophthalmus")),
          comm_name=stringr::str_trim(comm_name)) %>% 
   rbind(c("Monocle breams", rep("Scolopsis spp.", 2)))
-check_species(species$sci_name)
+freeR::check_names(species$sci_name)
 
 # Format FAO catch data
 fao_long <- c_fao_t %>% 
@@ -136,5 +136,5 @@ spp_do_stats <- rw_long %>%
 
 # Export data
 write.csv(data, file.path(outdir, "gulf_of_thailand_trawl_catch_data.csv"), row.names=F)
-write.csv(trawl_spp, file.path(tabledir, "TableX_got_summary.csv"), row.names=F)
+write.csv(trawl_spp, file.path(tabledir, "Table1_got_summary.csv"), row.names=F)
 

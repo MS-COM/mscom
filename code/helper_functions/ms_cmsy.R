@@ -147,6 +147,7 @@ get_family <- function(species){
 ################################################################################
 
 # Multi-species catch-only model
+# data <- fdata; key <- fkey; npairs <- 1000
 ms_cmsy <- function(data, key, npairs=5000){
   
   # Alphabetize
@@ -210,6 +211,7 @@ ms_cmsy <- function(data, key, npairs=5000){
   b_mats_v <- list()
   bbmsy_mats_v <- list()
   er_mats_v <- list()
+  uumsy_mats_v <- list()
   
   # Loop through stocks to identify viable r/k pairs and trajectoris
   for(i in 1:nstocks){
@@ -279,6 +281,7 @@ ms_cmsy <- function(data, key, npairs=5000){
     nviable <- sum(viable)
     b_mat_viable <- b_mat[,viable]
     id_rk_viable <- id_rk_combos[viable,]
+    if(nviable==0){print(paste("No viable trajectories found for stock:", stock_i))}
     
     # Derive B/BMSY
     bmsy <- id_rk_viable[,"k"] * (1 / (p+1))^(1/p)
@@ -306,6 +309,7 @@ ms_cmsy <- function(data, key, npairs=5000){
     b_mats_v[[i]] <- b_mat_viable
     bbmsy_mats_v[[i]] <- bbmsy_mat_viable
     er_mats_v[[i]] <- er_mat_viable
+    uumsy_mats_v[[i]] <- uumsy_mat_viable
     
   }
   
@@ -409,8 +413,8 @@ ms_cmsy <- function(data, key, npairs=5000){
     id_rk_v[[i]] <- id_rk_v_do1
   }
   
-  # Identify top 10% most highly correlated effort time series
-  top_p <- 0.05
+  # Identify top-10% most highly correlated effort time series
+  top_p <- 0.10
   top_n <- ceiling(nrow(hi_corr_mat) * top_p)
   top_corr <- as.data.frame(hi_corr_mat) %>%
     arrange(desc(corr_avg)) %>%
@@ -423,29 +427,51 @@ ms_cmsy <- function(data, key, npairs=5000){
   #   filter(corr_avg>=corr_thresh)
   # if(nrow(top_corr)==0){print("No highly correlated effort time series found.")}
   
-  # Get biomass trajectories of top 10%
-  # (also sneak in calculation of cMSY prediction)
-  bbmsy_v_meds <- list()
+  # Get effort-constrained trajectories
+  # and calculate/assemble final predictions
   er_mats_vv <- list()
   bbmsy_mats_vv <- list()
-  bbmsy_vv_meds <- list()
-  for(i in 1:length(b_mats_v)){
+  uumsy_mats_vv <- list()
+  for(i in 1:nstocks){
+    # Index of effort-constrained combos
     vv_index <- unlist(top_corr[,paste0("index", i)])
+    # ER time series of effort-constrained combos
     er_mat_v <- er_mats_v[[i]]
     er_mat_vv <- er_mat_v[,vv_index]
     er_mats_vv[[i]] <- er_mat_vv
+    # B/BMSY time series of effort-constrained combos
     bbmsy_mat_v <- bbmsy_mats_v[[i]]
     bbmsy_mat_vv <- bbmsy_mat_v[,vv_index]
     bbmsy_mats_vv[[i]] <- bbmsy_mat_vv
-    bbmsy_v_med <- apply(bbmsy_mat_v, 1, median)
-    bbmsy_vv_med <- apply(bbmsy_mat_vv, 1, median)
-    bbmsy_v_meds[[i]] <- bbmsy_v_med
-    bbmsy_vv_meds[[i]] <- bbmsy_vv_med
+    # U/UMSY time series of effort constrained combos
+    uumsy_mat_v <- uumsy_mats_v[[i]]
+    uumsy_mat_vv <- uumsy_mat_v[,vv_index]
+    uumsy_mats_vv[[i]] <- uumsy_mat_vv
+    # Calculate final predictions
+    bbmsy_cmsy <- t(apply(bbmsy_mat_v, 1, function(x) quantile(x, probs=c(0.5, 0.025, 0.975))))
+    bbmsy_mscmsy <- t(apply(bbmsy_mat_vv, 1, function(x) quantile(x, probs=c(0.5, 0.025, 0.975))))
+    uumsy_mscmsy <- t(apply(uumsy_mat_vv, 1, function(x) quantile(x, probs=c(0.5, 0.025, 0.975))))
+    er_mscmsy <- t(apply(er_mat_vv, 1, function(x) quantile(x, probs=c(0.5, 0.025, 0.975))))
+    # Assign column names to final predictions
+    colnames(bbmsy_cmsy) <- c("bbmsy_cmsy", "bbmsy_lo_cmsy", "bbmsy_hi_cmsy")
+    colnames(bbmsy_mscmsy) <- c("bbmsy", "bbmsy_lo", "bbmsy_hi")
+    colnames(uumsy_mscmsy) <- c("uumsy", "uumsy_lo", "uumsy_hi")
+    colnames(er_mscmsy) <- c("er", "er_lo", "er_hi")
+    # Combine final predictions
+    f_preds <- data.frame(stock=stocks[i], year=as.numeric(rownames(bbmsy_cmsy)),
+                          bbmsy_cmsy, bbmsy_mscmsy, uumsy_mscmsy, er_mscmsy, stringsAsFactors=F)
+    if(i==1){preds <- f_preds}else{preds <- rbind(preds, f_preds)}
   }
   
+  # Add catch to final predictions
+  preds_c <- preds %>% 
+    left_join(select(data, stock, year, catch), by=c("stock", "year")) %>%
+    select(stock, year, catch, everything())
+    
   # Things to return
   out <- list(key=key,
               data=data,
+              preds=preds_c,
               # Priors
               r_priors=r_priors, 
               k_priors=k_priors, 
@@ -456,12 +482,14 @@ ms_cmsy <- function(data, key, npairs=5000){
               b_v=b_mats_v, 
               er_v=er_mats_v,
               bbmsy_v=bbmsy_mats_v,
-              bbmsy_v_median=bbmsy_v_meds,
+              uumsy_v=uumsy_mats_v,
               # Effort-constrained trajectories
               top_corr=top_corr,
               er_vv=er_mats_vv,
               bbmsy_vv=bbmsy_mats_vv,
-              bbmsy_vv_median=bbmsy_vv_meds)
+              uumsy_vv=uumsy_mats_vv)
+  
+  # Return
   return(out)
   
 }
@@ -476,7 +504,7 @@ plot_ms_cmsy <- function(output, true){
   
   # Extract info
   key <- output$key
-  data <- output$data
+  preds <- output$preds
   stocks <- key$stock
   nstocks <- length(stocks)
   
@@ -491,7 +519,7 @@ plot_ms_cmsy <- function(output, true){
     #########################################
     
     # Year info
-    sdata <- filter(data, stock==stock_i)
+    sdata <- filter(preds, stock==stock_i)
     yrs <- sdata$year
     yr1 <- floor(min(yrs) / 10) * 10
     yr2 <- ceiling(max(yrs) / 10) * 10
@@ -555,8 +583,6 @@ plot_ms_cmsy <- function(output, true){
     # Extract B/BMSY trajectories
     bbmsy_v <- output$bbmsy_v[[i]]
     bbmsy_vv <- output$bbmsy_vv[[i]]
-    bbmsy_v_median <- output$bbmsy_v_median[[i]]
-    bbmsy_vv_median <- output$bbmsy_vv_median[[i]]
     
     # Plot B/BMSY trajectories
     if(!missing(true)){
@@ -572,9 +598,9 @@ plot_ms_cmsy <- function(output, true){
     for(k in 1:ncol(bbmsy_v)){lines(x=yrs, y=bbmsy_v[,k], col="grey70")}
     # Effort constrained trajectories
     for(k in 1:ncol(bbmsy_vv)){lines(x=yrs, y=bbmsy_vv[,k], col=freeR::tcolor("darkorange", 0.6))}
-    lines(x=yrs, y=bbmsy_vv_median, lwd=1.5, col="brown")
+    lines(x=sdata$year, y=sdata$bbmsy, lwd=1.5, col="brown")
     # cMSY trajectory
-    lines(x=yrs, y=bbmsy_v_median, lwd=1.2, col="black")
+    lines(x=sdata$year, y=sdata$bbmsy_cmsy, lwd=1.2, col="black")
     # Overfishing line
     lines(x=c(yr1, yr2), y=c(0.5, 0.5), lty=3)
     lines(x=c(yr1, yr2), y=c(1, 1), lty=2)
@@ -604,6 +630,7 @@ plot_ms_cmsy <- function(output, true){
     axis(side=1, at=seq(yr1, yr2, 10), las=2)
     for(k in 1:ncol(er_v)){lines(x=yrs, y=er_v[,k], col="grey80")}
     for(k in 1:ncol(er_vv)){lines(x=yrs, y=er_vv[,k], col=freeR::tcolor("darkorange", 0.6))}
+    lines(x=sdata$year, y=sdata$er, lwd=1.5, col="brown")
     
     # Add truth if available
     if(!missing(true)){
@@ -612,6 +639,5 @@ plot_ms_cmsy <- function(output, true){
     }
 
   }
-  
   
 }

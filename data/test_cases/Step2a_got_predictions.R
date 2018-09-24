@@ -26,7 +26,7 @@ plotdir <- "figures"
 codedir <- "code/helper_functions"
 
 # Read data
-data <- import(file.path(datadir, "gulf_of_thailand_trawl_catch_data.csv"))
+data_orig <- import(file.path(datadir, "gulf_of_thailand_trawl_catch_data.csv"))
 
 # Read helper functions
 helpers <- list.files(codedir)
@@ -41,9 +41,14 @@ ignore <- sapply(1:length(helpers), function(x) source(file.path(codedir, helper
 # res <- datalimited2::resilience(spp)
 
 # Format data
-data <- data %>% 
+data <- data_orig %>% 
   rename(stock=comm_name) %>% 
   select(stock, year, catch)
+
+# Build true
+true <- list()
+true$ts <- data_orig %>% 
+  rename(stock=comm_name)
 
 # Build key
 key <- data.frame(stock=c("Bigeye scad", "Blue swimming crab", "Largehead hairtail"),
@@ -51,7 +56,6 @@ key <- data.frame(stock=c("Bigeye scad", "Blue swimming crab", "Largehead hairta
                   resilience=c("High", "High", "Low"),
                   id_fixed=F,
                   stringsAsFactors=F)
-
 
 # Make predictions
 out <- ms_cmsy(data=data, key=key, npairs=5000)

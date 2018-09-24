@@ -121,7 +121,7 @@ results <- data1 %>%
          comm_name=sentcase(comm_name))
   
 # Check species names
-check_species(results$sci_name)
+check_names(results$sci_name)
 
 # Add resilience values
 res <- resilience(results$sci_name)
@@ -188,7 +188,7 @@ for(i in 1:nrow(r_priors1)){
 }
 
 # Add legend
-legend("topleft", legend=c("cMSY", "This study"), bty="n", border=F,
+legend("topleft", legend=c("Froese et al. (2018)", "Present study"), bty="n", border=F,
        fill=c(tcolor("orange", 0.5), tcolor("darkgreen", 0.3)), cex=1.3)
 
 # Carrying capacity
