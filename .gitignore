@@ -5,5 +5,5 @@
 admin
 drafts
 reports
-data/*/output
-data/output/pelagic_longline_simtest.Rdata
+/data/output/
+/data/output/pelagic_longline_simtest.Rdata
