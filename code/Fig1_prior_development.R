@@ -188,7 +188,7 @@ for(i in 1:nrow(r_priors1)){
 }
 
 # Add legend
-legend("topleft", legend=c("Froese et al. (2018)", "Present study"), bty="n", border=F,
+legend("topleft", legend=c("Froese et al. (2017)", "Present study"), bty="n", border=F,
        fill=c(tcolor("orange", 0.5), tcolor("darkgreen", 0.3)), cex=1.3)
 
 # Carrying capacity
@@ -215,7 +215,7 @@ plot(sat1 ~ yr1, results, bty="n", type="n", las=2, ylim=c(0,2),
 
 # Add MS-cMSY prior
 polygon(x=c(1880, 1945, 1980, 2000, 2000, 1980, 1945, 1880),
-        y=c(0.8, 0.8, 0.1, 0.1, 1, 1, 1, 1),
+        y=c(0.75, 0.75, 0.2, 0.2, 1, 1, 1, 1),
         col=tcolor("darkgreen", 0.3), border=F)
 
 # Add cMSY prior
@@ -241,7 +241,7 @@ plot(sat2 ~ cratio, results, bty="n", type="n", las=1, ylim=c(0,2),
 
 # Add MS-cMSY prior
 x <- seq(0,1,0.1)
-y1 <- 0 + 0.4*x
+y1 <- 0 + 0.2*x
 # y2 <- 0.8 + 0.2*x
 y2 <- 0.5 + 0.4*x
 polygon(x=c(x, rev(x)), y=c(y2, rev(y1)), col=tcolor("darkgreen", 0.3), border=F)

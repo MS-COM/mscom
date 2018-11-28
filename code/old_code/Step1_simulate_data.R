@@ -24,7 +24,7 @@ codedir <- "code/helper_functions"
 # codedir <- file.path(maindir, "code","helper_functions")
 
 # Read helper functions
-helpers <- list.files(codedir)
+helpers <- list.files(codedir, pattern=".R")
 ignore <- sapply(1:length(helpers), function(x) source(file.path(codedir, helpers[x])))
 
 ###############################

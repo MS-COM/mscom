@@ -4,17 +4,34 @@
 ################################################################################
 
 # Read r priors by family
-r_vals_fam <- read.csv("data/priors/r_priors_by_family.csv", as.is=T)
+r_vals_fam <- read.csv("data/priors/data/r_priors_by_family.csv", as.is=T)
+
+# Source FishLife r prior code
+source("data/priors/fishlife2/fishlife_r_priors.R")
 
 # R priors
 calc_r_priors <- function(key){
+  
+  # Get FishLife r priors
+  fl_r_list <- lapply(key$species, function(x) r_prior(x))
+  fl_r_df <- do.call("rbind", fl_r_list)
+  fl_r_df_format <- fl_r_df %>% 
+    select(species, ln_r_mu, ln_r_sd) %>% 
+    mutate(species=as.character(species))
+  
+  # Build r prior table
   r_priors <- key %>% 
-    select(stock, family, resilience) %>% 
+    select(stock, species, family, resilience) %>% 
+    # Add FishLife r priors
+    left_join(fl_r_df_format, by="species") %>% 
+    # Add Neubauer family-level r priors
     left_join(r_vals_fam, by="family") %>% 
+    # Set resilience priors and record final prior source
     mutate(resilience=factor(resilience, levels=c("Very low", "Low", "Medium", "High")),
            r_lo=c(0.01, 0.01, 0.01, 0.50)[resilience],
            r_hi=c(0.15, 0.50, 1.00, 1.25)[resilience],
-           use=ifelse(!is.na(r_mu), "family", "resilience"))
+           use=ifelse(!is.na(ln_r_mu), "FishLife", ifelse(!is.na(r_mu), "family", "resilience")))
+  
   # Print message if resilience priors are used
   if(any(r_priors$use=="resilience")){
     stocks_with_res_r <- r_priors$stock[r_priors$use=="resilience"]
@@ -34,13 +51,16 @@ calc_k_priors <- function(data){
 }
 
 # Initial saturation priors
+# yrs <- 1900:2015
+# s1 <- calc_sat1_priors(data=data.frame(year=yrs, stock=yrs))
+# plot(x=yrs, y=s1$s1_lo, type="l", ylim=c(0,2)); lines(x=yrs, y=s1$s1_hi)
 calc_sat1_priors <- function(data){
   s1_priors <- data %>% 
     group_by(stock) %>% 
     summarize(yr1=min(year),
-              s1_lo=ifelse(yr1<=1945, 0.8, NA),
-              s1_lo=ifelse(yr1>1945 & yr1<1980, 0.8+(0.1-0.8)/(1980-1945)*(yr1-1945), s1_lo),
-              s1_lo=ifelse(yr1>=1980, 0.1, s1_lo),
+              s1_lo=ifelse(yr1<=1945, 0.75, NA),
+              s1_lo=ifelse(yr1>1945 & yr1<1980, 0.75+(0.2-0.75)/(1980-1945)*(yr1-1945), s1_lo),
+              s1_lo=ifelse(yr1>=1980, 0.2, s1_lo),
               s1_hi=1)
   return(s1_priors)
 }
@@ -52,7 +72,7 @@ calc_sat2_priors <- function(data){
     summarize(cfinal=catch[year==max(year)],
               cmax=max(catch),
               cratio=cfinal/cmax,
-              s2_lo=0 + 0.4*cratio,
+              s2_lo=0 + 0.2*cratio,
               s2_hi=0.5 + 0.4*cratio)
   return(s2_priors)
 }
@@ -235,14 +255,21 @@ ms_cmsy <- function(data, key, npairs=5000){
     if(id_fixed==T){
       ids <- 1
     }else{
-      ids <- seq(s1_prior$s1_lo, s1_prior$s1_hi, 0.1)
+      ids <- seq(s1_prior$s1_lo, s1_prior$s1_hi, length.out=5)
     }
     
     # Get r/k pairs to evaluate
     r_prior_method <- r_prior$use
+    # FishLife-based r priors
+    if(r_prior_method=="FishLife"){
+      rs <- rlnorm(npairs, meanlog=r_prior$ln_r_mu, sdlog=r_prior$ln_r_sd)
+    }
+    # Family-based r priors
     if(r_prior_method=="family"){
       rs <- rlnorm(npairs, meanlog=log(r_prior$r_mu), sdlog=r_prior$r_sd)
-    }else{
+    }
+    # Resilience-based r priors
+    if(r_prior_method=="resilience"){
       rs <- exp(runif(npairs, log(r_prior$r_lo), log(r_prior$r_hi)))
     }
     ks <- exp(runif(npairs, log(k_prior$k_lo), log(k_prior$k_hi)))
@@ -413,7 +440,7 @@ ms_cmsy <- function(data, key, npairs=5000){
     id_rk_v[[i]] <- id_rk_v_do1
   }
   
-  # Identify top-10% most highly correlated effort time series
+  # Identify top-XX% most highly correlated effort time series
   top_p <- 0.10
   top_n <- ceiling(nrow(hi_corr_mat) * top_p)
   top_corr <- as.data.frame(hi_corr_mat) %>%
@@ -528,9 +555,9 @@ plot_ms_cmsy <- function(output, true){
     #########################################
     
     # Plot catch
-    ymax <- ceiling(max(sdata$catch/1000) / 10) * 10
-    ylabel <- ifelse(i==1, "Catch (1000s)", "")
-    plot(catch/1000 ~ year, sdata, type="l", bty="n", las=2, xaxt="n",
+    ymax <- max(sdata$catch)
+    ylabel <- ifelse(i==1, "Catch", "")
+    plot(catch ~ year, sdata, type="l", bty="n", las=2, xaxt="n",
          xlim=c(yr1, yr2), ylim=c(0, ymax), xlab="", ylab=ylabel, main=stock_i)
     axis(side=1, at=seq(yr1, yr2, 10), las=2)
     
@@ -539,19 +566,19 @@ plot_ms_cmsy <- function(output, true){
     
     # Extract r/k info
     id_rk_v <- output$id_rk_v[[i]]
-    id_rk_v$k <-   id_rk_v$k/1000
+    id_rk_v$k <-   id_rk_v$k
     top_corr <- output$top_corr
     r_prior <- unlist(select(filter(output$r_priors, stock==stock_i), r_lo, r_hi))
-    k_prior <- unlist(select(filter(output$k_priors, stock==stock_i), k_lo, k_hi)) / 1000
+    k_prior <- unlist(select(filter(output$k_priors, stock==stock_i), k_lo, k_hi))
     
     # Plot viable r/k pairs
     # Potentially reduce this to unique r/k pairs
     # There could be redundancy when evaluating multiple IDs
     rmin <- floor(min(id_rk_v$r) / 0.1) * 0.1
     rmax <- ceiling(max(id_rk_v$r) / 0.1) * 0.1
-    kmin <- floor(min(id_rk_v$k) / 50) * 50
-    kmax <- ceiling(max(id_rk_v$k) / 50) * 50
-    ylabel <- ifelse(i==1, "Carrying capacity, K (1000s)", "")
+    kmin <- min(id_rk_v$k) 
+    kmax <- max(id_rk_v$k)
+    ylabel <- ifelse(i==1, "Carrying capacity, K", "")
     plot(k ~ r, id_rk_v, bty="n", las=1, pch=15, col="gray70",
          xlim=c(rmin, rmax), ylim=c(kmin, kmax), 
          xlab="Intrinsic growth rate, r", ylab=ylabel)
@@ -569,6 +596,12 @@ plot_ms_cmsy <- function(output, true){
     # # Add repeatedly highly correlated r/k pairs
     # rk_corr <- subset(rk_viable, ncorr>=5)
     # points(x=rk_corr$r, y=rk_corr$k, pch=15, col="darkorange")
+    
+    # Add truth if available
+    if(!missing(true)){
+      rk <- filter(true$rk, comm_name==stock_i)
+      points(x=rk$r, y=rk$k, col="red", pch=15, cex=1.2)
+    }
 
     # Add legend
     if(i==1){
