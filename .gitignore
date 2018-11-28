@@ -5,3 +5,5 @@
 admin
 drafts
 reports
+data/priors/winker/*
+data/output/*
