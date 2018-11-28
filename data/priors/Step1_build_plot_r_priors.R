@@ -11,7 +11,8 @@ library(plyr)
 library(dplyr)
 
 # Directories
-datadir <- "data/priors"
+datadir <- "data/priors/data"
+plotdir <- "data/priors/figures"
 
 # Read meta-analytics r values
 r_vals_orig <- read.csv(file.path(datadir, "neubauer_etal_2013_r_values.csv"), as.is=T)
@@ -62,6 +63,7 @@ r_vals_fam <- r_vals %>%
   arrange(desc(r_mu))
 
 # Export data
+write.csv(r_vals, file.path(datadir, "neubauer_etal_2013_r_values_clean.csv"), row.names=F)
 write.csv(r_vals_fam, file.path(datadir, "r_priors_by_family.csv"), row.names=F)
 
 # Plot data
@@ -69,7 +71,7 @@ write.csv(r_vals_fam, file.path(datadir, "r_priors_by_family.csv"), row.names=F)
 
 # Setup figure 
 figname <- "Fig1_r_meta_analytic_means.png"
-png(paste(datadir, figname, sep="/"), width=6.5, height=4.5, units="in", res=600)
+png(paste(plotdir, figname, sep="/"), width=6.5, height=4.5, units="in", res=600)
 par(mfrow=c(1,1), mar=c(8, 4.5, 0.5, 0.5), mgp=c(3.3,1,0))
 
 # Plot figure

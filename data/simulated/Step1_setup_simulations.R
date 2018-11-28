@@ -3,151 +3,209 @@
 # Setup
 ################################################################################
 
-# Install packages
-# devtools::install_github("james-thorson/FishLife")
-# devtools::install_github("cfree14/freeR")
-# devtools::install_github("cfree14/datalimited2")
-# devtools::install_github("cttedwards/lhm")
-
 # Clear workspace
 rm(list = ls())
+
+# Turn off sci notation
+options(scipen=999)
 
 # Packages
 library(plyr)
 library(dplyr)
 library(freeR)
-library(FishLife)
-library(lhm)
-library(rfishbase)
 
 # Directories
 datadir <- "data/simulated/data"
+priordir <- "data/priors/data"
+tabledir <- "data/simulated/tables"
+codedir <- "data/priors/fishlife2"
 
-# Read species key
-spp <- read.csv(file.path(datadir, "simulated_species.csv"), as.is=T)
+# Read data
+ne_spp <- read.csv(file.path(datadir, "usa_ne_multispecies_complex.csv"), as.is=T)
+freeR::check_names(ne_spp$species)
+
+# Read r prior function
+source(file.path(codedir, "fishlife_r_priors.R"))
+
+# Read r priors
+rvals <- read.csv(file.path(priordir, "neubauer_etal_2013_r_values_clean.csv"), as.is=T)
+
+# Read RAM Legacy Database
+load("/Users/cfree/Dropbox/Prelim Database Files/Versions/RAM v4.41 (8-20-18)/DB Files With Assessment Data/DBdata (assessment data only).RData")
 
 
-# Helper functions
+# Northeast multi-species fishery
 ################################################################################
 
-# Calculate maturity-at-age vector
-matvec <- function(tmat, tmax){
-  
-  # Age vector
-  ages <- 0:ceiling(tmax)
-  
-  # Maturity-at-age
-  # Logistic growth: y = L / (1 + exp(-K*(x-x0)))
-  L <- 1
-  x0 <- tmat
-  K <- tmat*2
-  mats <- L / (1 + exp(-K*(ages-x0)))
-  
-  # Plot maturity-at-age
-  par(mfrow=c(1,1))
-  curve(L / (1 + exp(-K*(x-x0))), from=0, to=ceiling(tmax), n=100, las=1, bty="n", 
-        xlab="Age (yr)", ylab="p(mature)", ylim=c(0,1))
-  x <- c(0,tmat,tmax)
-  y <- L / (1 + exp(-K*(x-x0)))
-  points(x=x, y=y, pch=16)
-  text(x=x[2:3], y=y[2:3], labels=c("Age-at-maturity", "Max age"), pos=c(4,1))
-  
-  # Return
-  return(mats)
-  
+# Stock info
+ne_stocks <- stock %>%
+  # Select columns
+  select(stocklong, stockid, scientificname, commonname, region, areaid) %>% 
+  # Add area info
+  left_join(select(area, areaid, areaname), by="areaid") %>% 
+  # Format columns
+  rename(species=scientificname, comm_name=commonname, area=areaname) %>% 
+  mutate(comm_name=freeR::sentcase(comm_name)) %>% 
+  # Rearrange columns
+  select(-areaid) %>% 
+  # Filter to Northeast multispecies complex
+  filter(region=="US East Coast") %>% # check species names here: check_names(ne_stocks$species)
+  filter(species %in% ne_spp$species)
+
+# Stock stats
+ne_stats <- timeseries_values_views %>% 
+  # Filter stocks of interest
+  filter(stockid %in% ne_stocks$stockid) %>% 
+  # Select columns of interest
+  select(stockid, year, TB, SSB, TC, TL) %>% 
+  # Calculate stats
+  group_by(stockid) %>% 
+  summarize(tc=quantile(TC, probs=0.90, na.rm=T),
+            tl=quantile(TL, probs=0.90, na.rm=T),
+            tb=max(TB, na.rm=T),
+            ssb=max(SSB, na.rm=T)) %>% 
+  # Add units
+  left_join(select(timeseries_units_views, stockid, TB, SSB, TC, TL), by="stockid") %>% 
+  rename(tb_units=TB, ssb_units=SSB, tc_units=TC, tl_units=TL) %>% 
+  # Determine final stats
+  mutate(c=ifelse(!is.na(tc), tc, tl),
+         b=ifelse(!is.infinite(tb), tb, ssb),
+         c_units=ifelse(!is.na(tc), tc_units, tl_units),
+         b_units=ifelse(!is.infinite(tb), tb_units, ssb_units)) %>% 
+  # Final cols
+  select(stockid, c, b, c_units, b_units)
+
+# Get FishLife life history
+lh <- freeR::fishlife(ne_spp$species)
+taxon <- freeR::taxa(ne_spp$species)
+res <- datalimited2::resilience(ne_spp$species)
+
+# Get r priors
+set.seed(1)
+r_vals <- data.frame(species=ne_spp$species, ln_r_mu=NA, ln_r_sd=NA, r_median=NA, r=NA, stringsAsFactors=F)
+for(i in 1:nrow(r_vals)){
+  r_info <- r_prior(r_vals$species[i])
+  r_vals$ln_r_mu[i] <- r_info$ln_r_mu
+  r_vals$ln_r_sd[i] <- r_info$ln_r_sd
+  r_vals$ln_r_mu[i] <- r_info$ln_r_mu
+  r_vals$r_median[i] <- r_info$r_median
+  r_vals$r[i] <- rlnorm(1, meanlog=r_info$ln_r_mu, sdlog= r_info$ln_r_sd)
 }
 
-
-
-# Build data
-################################################################################
-
-# Check sci names
-freeR::check_names(spp$species)
-
-# Get taxanomic info
-taxon <- freeR::taxa(spp$species)
-
-# Get resilience
-res <- datalimited2::resilience(spp$species)
-
-# Get life history data
-lh <- freeR::fishlife(spp$species)
-
-# Get length-weight data
-# Types: TL=total, FL=fork, SL=standard, OT=other
-lw_orig <- length_weight(species_list=spp$species)
-lw <- lw_orig %>% 
-  select(sciname, Type, a, b) %>% 
-  rename(species=sciname, type=Type) %>% 
-  group_by(species, type) %>% 
-  summarize(n=n(),
-            a=median(a),
-            b=median(b)) %>% 
-  filter(n==max(n))
-
-# Build dataset
-data <- spp %>% 
+# Add stats to meta-data
+ne <- ne_stocks %>% 
+  left_join(ne_stats, by="stockid") %>% 
+  # One stock of each species (one with greatest catch) 
+  group_by(species) %>% 
+  filter(!area%in%c("Northwestern Atlantic Coast", "Southern New England /Mid Atlantic")) %>% 
+  filter(c==max(c)) %>%
+  arrange(desc(c)) %>% 
+  # Add life history info
   left_join(select(taxon, sciname, family), by=c("species"="sciname")) %>% 
   left_join(res, by="species") %>% 
-  left_join(lh, by="species")
+  left_join(select(lh, species, m), by="species") %>% 
+  left_join(select(r_vals, species, r), by="species") %>% 
+  # Final K value
+  # K is max(biomass) or 10*catch
+  mutate(k=ifelse(b_units=="MT" & !is.na(b_units), b, c*10))
 
+# Format for export
+ne_final <- ne %>% 
+  ungroup() %>% 
+  mutate(fishery="Demersal trawl fishery",
+         name=paste0(comm_name, " (", species, ")")) %>% 
+  select(fishery, family, resilience, name, comm_name, species, r, k) %>% 
+  mutate(k=ceiling(k/1000)) %>% 
+  slice(1:10)
 
-# Estimate intrinsic growth rate, r
-for(i in 1:nrow(data)){
+# Export
+write.csv(ne_final, file.path(datadir, "demersal_trawl_fishery_10spp.csv"), row.names=F)
+
+# Tuna RFMO
+################################################################################
+
+# Which RFMO has 10 stocks?
+# ICCAT has most (International Commission for the Conservation of Atlantic Tunas)
+rfmo_n <- assessment %>% 
+  filter(mostrecent==999) %>% 
+  left_join(select(stock, stockid, scientificname), by="stockid") %>% 
+  group_by(assessorid) %>% 
+  summarize(nstocks=n(), 
+            nspp=n_distinct(scientificname)) %>% 
+  filter(assessorid %in% c("IATTC", "IOTC", "ICCAT", "WCPFC", "SPC", "ISC", "CCSBT"))
   
-  # Subset data
-  spp1 <- data$species[i]
-  sdata <- filter(data, species==spp1)
-  
-  # Setup LHM object
-  # ainf = assumed asymptotic age
-  # iter = number of iterations
-  rdat <- lhm(ainf = sdata$tmax_yr, iter = 200)
-  
-  # Fill LHM object
-  nmort(rdat) <- list(mu = sdata$m)
-  # maturity(rdat) <- matvec(tmat=sdata$tmat_yr, tmax=sdata$tmax_yr)
-  size(rdat) <- list(mu = list(Linf = sdata$linf_cm, k = sdata$k, t0 = 0))
-  mass(rdat)     <- list(mu = list(a = 1.88e-9, b = 3.305))
-  sr(rdat) <- list(type = 'BH', mu = 0.90, cv = 0.10)
-  
-  # Estimate r
-  r <- rCalc(rdat)
-  
-  # Plot r
-  plot(r)
-  
-  
-}
+# Stock info
+t_stocks <- stock %>%
+  # Select columns
+  select(stocklong, stockid, scientificname, commonname, region, areaid) %>% 
+  # Add area info
+  left_join(select(area, areaid, areaname), by="areaid") %>% 
+  # Add assessment info
+  left_join(select(filter(assessment, mostrecent==999), stockid, assessorid), by="stockid") %>% 
+  # Format columns
+  rename(species=scientificname, comm_name=commonname, area=areaname, assessor=assessorid) %>% 
+  mutate(comm_name=freeR::sentcase(comm_name),
+         species=revalue(species, c("Tetrapturus albidus"="Kajikia albida"))) %>% 
+  # Rearrange columns
+  select(-areaid) %>% 
+  # Filter to ICCAT
+  filter(assessor=="ICCAT" & region=="Atlantic Ocean")
 
+# Stock stats
+t_stats <- timeseries_values_views %>% 
+  # Filter stocks of interest
+  filter(stockid %in% t_stocks$stockid) %>% 
+  # Select columns of interest
+  select(stockid, year, TB, SSB, TC, TL) %>% 
+  # Calculate stats
+  group_by(stockid) %>% 
+  summarize(tc=quantile(TC, probs=0.90, na.rm=T),
+            tl=quantile(TL, probs=0.90, na.rm=T),
+            tb=max(TB, na.rm=T),
+            ssb=max(SSB, na.rm=T)) %>% 
+  # Add units
+  left_join(select(timeseries_units_views, stockid, TB, SSB, TC, TL), by="stockid") %>% 
+  rename(tb_units=TB, ssb_units=SSB, tc_units=TC, tl_units=TL) %>% 
+  # Determine final stats
+  mutate(c=ifelse(!is.na(tc), tc, tl),
+         b=ifelse(!is.infinite(tb), tb, ssb),
+         c_units=ifelse(!is.na(tc), tc_units, tl_units),
+         b_units=ifelse(!is.infinite(tb), tb_units, ssb_units)) %>% 
+  # Final cols
+  select(stockid, c, b, c_units, b_units)
 
-# initialise lhm data object for calculation of r with uncertainty
-rdat <- lhm(ainf = 100, iter = 200)
+# Get FishLife life history
+spp <- sort(unique(t_stocks$species))
+lh <- freeR::fishlife(spp)
+taxon <- freeR::taxa(spp)
+res <- datalimited2::resilience(spp)
 
-# then life-history vectors can be assigned to each iteration
-# with or without uncertainty
-nmort(rdat)    <- list(mu = 0.18)
-maturity(rdat) <- c(0.0,0.01,0.02,0.06,0.14,0.28,0.50,0.72,0.86,0.94,0.98,0.99,1.00)
-size(rdat)     <- list(mu = list(Linf = 106.5, k = 0.229, t0 = 0.01))
-mass(rdat)     <- list(mu = list(a = 1.88e-9, b = 3.305))
-sr(rdat)       <- list(type = 'BH', mu = 0.90, cv = 0.10)
+# Add stats to meta-data
+t1 <- t_stocks %>% 
+  left_join(t_stats, by="stockid") %>% 
+  # One stock of each species (one with greatest catch) 
+  group_by(species) %>%
+  filter(c==max(c)) %>%
+  arrange(desc(c)) %>%
+  # Add life history info
+  left_join(select(taxon, sciname, family), by=c("species"="sciname")) %>% 
+  left_join(res, by="species") %>% 
+  left_join(select(lh, species, m), by="species") %>% 
+  # Add Neubauer r values
+  left_join(unique(select(rvals, species, r_spp)), by="species") %>% 
+  left_join(unique(select(rvals, family, r_fam)), by="family") %>% 
+  mutate(r_nmort=0.87*m*2) %>% 
+  # Final r/k values
+  # K is max(biomass) or 10*catch
+  mutate(k=ifelse(b_units=="MT" & !is.na(b_units), b, c*10),
+         r=ifelse(!is.na(r_spp), r_spp, ifelse(!is.na(r_fam), r_fam, r_nmort)))
 
-# calculate r prior and fit log-normal distribution
-r <- rCalc(rdat)
-plot(r)
-
-
-
-x <-c(0.0,0.01,0.02,0.06,0.14,0.28,0.50,0.72,0.86,0.94,0.98,0.99,1.00)
-plot(1:length(x), x)
-
-
-tmax <- sdata$tmax_yr
-tmat <- sdata$tmat_yr
-
-
-
+# Format for export
+t_final <- t1 %>% 
+  ungroup() %>% 
+  mutate(fishery="Pelagic longline fishery") %>% 
+  select(fishery, comm_name, species, r, k) %>% 
+  mutate(k=ceiling(k/1000)) 
 
 
 
